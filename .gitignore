@@ -1,0 +1,67 @@
+# =============================================================================
+# .gitignore — Appointment Booking Platform
+# =============================================================================
+
+# Environment variables — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# IDE / Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Test outputs
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Uploads
+uploads/
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.ico
+*.svg
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Prisma
+prisma/migrations/.prisma
+**/prisma/generated/**
+
+# Misc
+.cache/
+.eslintcache
+*.tgz
+*.zip
+*.tar.gz

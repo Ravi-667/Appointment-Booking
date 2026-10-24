@@ -1,0 +1,79 @@
+# =============================================================================
+# Dockerfile.api — NestJS API application
+# =============================================================================
+#
+# Multi-stage build:
+#   Stage 1 (builder) : install deps + build TypeScript
+#   Stage 2 (runtime) : copy only dist + node_modules (production)
+#
+# Build:
+#   docker build -t appointment-booking-api:latest .
+#
+# Run:
+#   docker run -p 3000:3000 --env-file .env appointment-booking-api:latest
+# =============================================================================
+
+# --------------------------------------------------------------------------
+# Stage 1: Builder
+# --------------------------------------------------------------------------
+FROM node:20-alpine AS builder
+
+# Install curl (used by some Node packages) + make/g++ for native deps
+RUN apk add --no-cache curl make g++
+
+WORKDIR /usr/src/app
+
+# Copy package files first (better layer caching)
+COPY package.json package-lock.json* ./
+
+# Install all dependencies (include devDeps for build)
+RUN npm ci
+
+# Copy source and build
+COPY . .
+RUN npm run build
+
+# --------------------------------------------------------------------------
+# Stage 2: Production runtime
+# --------------------------------------------------------------------------
+FROM node:20-alpine AS production
+
+# Non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nestjs -u 1001
+
+WORKDIR /usr/src/app
+
+# Copy node_modules + dist from builder
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/package.json ./
+
+# Expose API port
+EXPOSE 3000
+
+# Health check (also used as Kubernetes liveness probe target)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node --eval "require('http').get('http://localhost:3000/health/live', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
+
+# Start the app (PM2 recommended in production)
+CMD ["sh", "-c", "node dist/main"]
+
+# --------------------------------------------------------------------------
+# Stage 3 (optional): Development image with hot-reload
+# --------------------------------------------------------------------------
+FROM node:20-alpine AS development
+
+WORKDIR /usr/src/app
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Install nodemon / ts-node-dev for dev hot-reload (optional)
+RUN npm install -g nodemon
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["nodemon", "--watch", "src", "--ext", "ts", "--exec", "npm run start:dev"]
