@@ -1,19 +1,3 @@
-# =============================================================================
-# prisma/schema.prisma — Appointment Booking Platform Data Model
-# =============================================================================
-#
-# Prisma ORM schema for PostgreSQL 15.
-#
-# Usage:
-#   npx prisma init           (creates this file + .env)
-#   npx prisma migrate dev --name <migration_name>
-#   npx prisma generate       (generates Prisma Client)
-#   npx prisma studio         (opens GUI at http://localhost:5555)
-#
-# Production migrations:
-#   npx prisma migrate deploy  (runs migrations automatically on deploy)
-#   Always run migrations BEFORE restarting API pods (Kubernetes).
-#
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,375 +7,275 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-# --------------------------------------------------------------------------
-# Auth & Tenancy
-# --------------------------------------------------------------------------
-
 model Tenant {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                    String    @db.VarChar(100)
-  slug                    String    @db.VarChar(50)
-  category                String?   @db.VarChar(50)
-  email                   String    @db.VarChar(255)
-  phone                   String?   @db.VarChar(20)
-  address                 String?   @db.VarChar(500)
-  timezone                String    @db.VarChar(50) @default("Asia/Kolkata")
-  currency                String    @db.Char(3) @default("INR")
-  logo_url                String?
-  plan                    String    @db.VarChar(20) @default("free")
-  is_active               Boolean   @default(true)
-  booking_lead_time_hours Int       @default(1)
-  booking_advance_limit_days Int     @default(60)
-  cancellation_cutoff_hours Int     @default(24)
-  buffer_minutes          Int       @default(0)
-  created_at              DateTime  @default(now())
-  updated_at              DateTime  @updatedAt
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                    String   @db.VarChar(100)
+  slug                    String   @unique @db.VarChar(50)
+  category                String?  @db.VarChar(50)
+  email                   String   @unique @db.VarChar(255)
+  phone                   String?  @db.VarChar(20)
+  address                 String?
+  timezone                String   @default("Asia/Kolkata")
+  currency                String   @default("INR") @db.Char(3)
+  logoUrl                 String?
+  plan                    String   @default("free")
+  isActive                Boolean  @default(true)
+  bookingLeadTimeHours    Int      @default(1)
+  bookingAdvanceLimitDays Int      @default(60)
+  cancellationCutoffHours Int      @default(24)
+  bufferMinutes           Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-  users               User[]
-  staff               Staff[]
-  services            Service[]
-  business_hours      BusinessHour[]
-  holidays            Holiday[]
-  bookings            Booking[]
-  payments            Payment[]
-  notifications_log   NotificationLog[]
-  audit_logs          AuditLog[]
+  users         User[]
+  businessHours BusinessHour[]
+  holidays      Holiday[]
+  services      Service[]
+  staff         Staff[]
+  bookings      Booking[]
+  auditLogs     AuditLog[]
 
-  @@unique([slug])
   @@map("tenants")
 }
 
 model User {
-  id                          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id                   String?  @db.Uuid
-  email                       String   @db.VarChar(255)
-  phone                       String?  @db.VarChar(20)
-  name                        String   @db.VarChar(100)
-  password_hash               String?
-  role                        String   @db.VarChar(20)            # PLATFORM_ADMIN | BUSINESS_OWNER | STAFF | CUSTOMER
-  email_verified              Boolean  @default(false)
-  email_verify_token          String?
-  email_verify_token_exp      DateTime?
-  password_reset_token        String?
-  password_reset_token_exp    DateTime?
-  google_id                   String?
-  avatar_url                  String?
-  is_active                   Boolean  @default(true)
-  created_at                  DateTime @default(now())
-  updated_at                  DateTime @updatedAt
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId              String?   @db.Uuid
+  email                 String    @db.VarChar(255)
+  phone                 String?   @db.VarChar(20)
+  name                  String    @db.VarChar(100)
+  passwordHash          String?
+  role                  String    @db.VarChar(20)
+  emailVerified         Boolean   @default(false)
+  emailVerifyToken      String?
+  emailVerifyTokenExp   DateTime?
+  passwordResetToken    String?
+  passwordResetTokenExp DateTime?
+  avatarUrl             String?
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  tenant      Tenant?        @relation(fields: [tenant_id], references: [id], onDelete: SetNull)
-  staff       Staff?
-  audit_logs  AuditLog[]
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
 
-  @@unique([email, tenant_id])
-  @@index([email])
+  @@unique([email, tenantId])
   @@map("users")
 }
 
-model Staff {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id   String   @db.Uuid
-  user_id     String?  @db.Uuid
-  name        String   @db.VarChar(100)
-  bio         String?  @db.VarChar(500)
-  avatar_url  String?
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-
-  tenant      Tenant       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  user        User?        @relation(fields: [user_id], references: [id], onDelete: SetNull)
-  staff_services StaffService[]
-  staff_schedules StaffSchedule[]
-
-  @@map("staff")
-}
-
-# --------------------------------------------------------------------------
-# Scheduling
-# --------------------------------------------------------------------------
-
 model BusinessHour {
-  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id String  @db.Uuid
-  day_of_week Int    @db.SmallInt                      # 0 = Sunday ... 6 = Saturday
-  open_time Time    @db.Time
-  close_time Time    @db.Time
-  is_open   Boolean @default(true)
-  created_at DateTime @default(now())
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String  @db.Uuid
+  dayOfWeek   Int
+  openTime    String
+  closeTime   String
+  isOpen      Boolean @default(true)
 
-  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenant_id, day_of_week])
+  @@unique([tenantId, dayOfWeek])
   @@map("business_hours")
 }
 
 model Holiday {
-  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id String  @db.Uuid
-  date      DateTime @db.Date
-  reason    String?  @db.VarChar(200)
-  created_at DateTime @default(now())
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String   @db.Uuid
+  date     DateTime @db.Date
+  reason   String?
 
-  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenant_id, date])
-  @@index([date])
+  @@unique([tenantId, date])
   @@map("holidays")
 }
 
-model StaffSchedule {
-  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  staff_id  String  @db.Uuid
-  date      DateTime @db.Date
-  is_off    Boolean @default(false)
-  start_time Time? @db.Time
-  end_time   Time? @db.Time
-  created_at DateTime @default(now())
+model ServiceCategory {
+  id    String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name  String  @unique @db.VarChar(50)
+  icon  String?
+  color String? @db.VarChar(7)
 
-  staff Staff @relation(fields: [staff_id], references: [id], onDelete: Cascade)
+  services Service[]
 
-  @@unique([staff_id, date])
-  @@index([date])
-  @@map("staff_schedules")
+  @@map("service_categories")
 }
 
-# --------------------------------------------------------------------------
-# Catalog & Bookings
-# --------------------------------------------------------------------------
-
 model Service {
-  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id         String  @db.Uuid
-  name              String  @db.VarChar(100)
-  description       String?  @db.Text
-  category          String?  @db.VarChar(50)
-  duration_minutes  Int     @db.Int
-  price             Decimal @db.Decimal(10, 2)
-  deposit_amount    Decimal @db.Decimal(10, 2) @default(0)
-  max_concurrent    Int     @default(1)
-  is_active         Boolean @default(true)
-  buffer_minutes    Int     @default(0)
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @db.Uuid
+  name            String   @db.VarChar(100)
+  description     String?
+  categoryId      String?  @db.Uuid
+  durationMinutes Int
+  price           Decimal  @db.Decimal(10, 2)
+  depositAmount   Decimal  @default(0) @db.Decimal(10, 2)
+  maxConcurrent   Int      @default(1)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  staff_services StaffService[]
-  bookings Booking[]
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category      ServiceCategory? @relation(fields: [categoryId], references: [id])
+  staffServices StaffService[]
+  bookings      Booking[]
 
-  @@index([tenant_id])
   @@map("services")
 }
 
+model Staff {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String  @db.Uuid
+  name      String  @db.VarChar(100)
+  bio       String?
+  avatarUrl String?
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staffServices StaffService[]
+  schedules     StaffSchedule[]
+  bookings      Booking[]
+  bookingHolds  BookingHold[]
+
+  @@map("staff")
+}
+
 model StaffService {
-  staff_id String @db.Uuid
-  service_id String @db.Uuid
+  staffId   String @db.Uuid
+  serviceId String @db.Uuid
 
-  staff Staff @relation(fields: [staff_id], references: [id], onDelete: Cascade)
-  service Service @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
-  @@id([staff_id, service_id])
+  @@id([staffId, serviceId])
   @@map("staff_services")
 }
 
-model Booking {
-  id                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id          String  @db.Uuid
-  service_id         String  @db.Uuid
-  staff_id           String?  @db.Uuid
-  customer_name      String  @db.VarChar(100)
-  customer_email     String  @db.VarChar(255)
-  customer_phone     String?  @db.VarChar(20)
-  customer_notes     String?  @db.Text
-  start_time         DateTime @db.Timestamptz
-  end_time           DateTime @db.Timestamptz
-  status             String  @db.VarChar(30) @default("PENDING_PAYMENT")
-  price              Decimal @db.Decimal(10, 2)
-  deposit_amount     Decimal @db.Decimal(10, 2)
-  cancellation_reason String? @db.Text
-  rescheduled_from   String?  @db.Uuid
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
+model StaffSchedule {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  staffId   String   @db.Uuid
+  date      DateTime @db.Date
+  isOff     Boolean  @default(false)
+  startTime String?
+  endTime   String?
 
-  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  service Service @relation(fields: [service_id], references: [id], onDelete: Cascade)
-  staff Staff? @relation(fields: [staff_id], references: [id], onDelete: SetNull)
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
-  @@index([tenant_id, start_time])
-  @@index([status])
-  @@index([staff_id, start_time, end_time])
-  @@index([customer_email])
-  @@map("bookings")
+  @@unique([staffId, date])
+  @@map("staff_schedules")
 }
-
-# Exclusion constraint: prevents double-booking of the same staff.
-# GIST index is auto-created by PostgreSQL. The WHERE clause excludes CANCELLED
-# bookings (rebooked slots are immediately available again).
-#
-# Note: booking_holds are handled in Redis (SET NX) for speed; this constraint
-# is the final safety net in a SERIALIZABLE transaction.
-@@rawConstraint("""
-  CONSTRAINT no_double_booking EXCLUDE USING gist (
-    staff_id WITH =,
-    tstzrange(start_time, end_time, '[)') WITH &&
-  ) WHERE (status <> 'CANCELLED')
-""")
 
 model BookingHold {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id    String   @db.Uuid
-  staff_id     String?  @db.Uuid
-  service_id   String   @db.Uuid
-  start_time   DateTime @db.Timestamptz
-  end_time     DateTime @db.Timestamptz
-  session_token String  @db.VarChar(64)
-  expires_at   DateTime @db.Timestamptz
-  created_at   DateTime @default(now())
+  tenantId     String   @db.Uuid
+  serviceId    String   @db.Uuid
+  staffId      String?  @db.Uuid
+  startTime    DateTime
+  endTime      DateTime
+  sessionToken String   @unique @db.VarChar(64)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
 
-  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  staff Staff? @relation(fields: [staffId], references: [id])
 
-  @@unique([session_token])
-  @@index([tenant_id, expires_at])
-  @@index([staff_id, start_time])
   @@map("booking_holds")
 }
 
-# --------------------------------------------------------------------------
-# Payments & Refunds
-# --------------------------------------------------------------------------
+model Booking {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @db.Uuid
+  serviceId          String   @db.Uuid
+  staffId            String?  @db.Uuid
+  customerName       String   @db.VarChar(100)
+  customerEmail      String   @db.VarChar(255)
+  customerPhone      String?  @db.VarChar(20)
+  customerNotes      String?
+  startTime          DateTime
+  endTime            DateTime
+  status             String   @default("PENDING_PAYMENT") @db.VarChar(30)
+  price              Decimal  @db.Decimal(10, 2)
+  depositAmount      Decimal  @db.Decimal(10, 2)
+  razorpayOrderId    String?  @unique @db.VarChar(100)
+  cancellationReason String?
+  rescheduledFromId  String?  @db.Uuid
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  service         Service   @relation(fields: [serviceId], references: [id])
+  staff           Staff?    @relation(fields: [staffId], references: [id])
+  rescheduledFrom Booking?  @relation("RescheduleChain", fields: [rescheduledFromId], references: [id])
+  rescheduledTo   Booking[] @relation("RescheduleChain")
+  payments        Payment[]
+
+  @@index([tenantId, startTime])
+  @@index([staffId, startTime])
+  @@map("bookings")
+}
 
 model Payment {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  booking_id        String   @db.Uuid
-  tenant_id         String   @db.Uuid
-  razorpay_order_id String?  @db.VarChar(100)
-  razorpay_payment_id String? @db.VarChar(100)
-  razorpay_refund_id String? @db.VarChar(100)
+  bookingId         String   @db.Uuid
+  tenantId          String   @db.Uuid
+  razorpayOrderId   String?  @unique @db.VarChar(100)
+  razorpayPaymentId String?  @unique @db.VarChar(100)
   amount            Decimal  @db.Decimal(10, 2)
-  currency          String   @db.Char(3) @default("INR")
-  status            String   @db.VarChar(20) @default("PENDING")
-  type              String   @db.VarChar(20) @default("DEPOSIT")
-  webhook_event_id  String?  @db.VarChar(100)
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  currency          String   @default("INR") @db.Char(3)
+  status            String   @default("PENDING") @db.VarChar(20)
+  type              String   @default("DEPOSIT") @db.VarChar(20)
+  webhookEventId    String?  @unique @db.VarChar(100)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  booking Booking @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  booking Booking  @relation(fields: [bookingId], references: [id])
+  refunds Refund[]
 
-  @@unique([booking_id])
-  @@unique([razorpay_order_id])
-  @@unique([razorpay_payment_id])
-  @@unique([webhook_event_id])
-  @@index([status, updated_at])
   @@map("payments")
 }
 
 model Refund {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  payment_id       String   @db.Uuid
-  razorpay_refund_id String? @db.VarChar(100)
+  paymentId        String   @db.Uuid
+  razorpayRefundId String?  @unique @db.VarChar(100)
   amount           Decimal  @db.Decimal(10, 2)
-  reason           String?   @db.Text
-  status           String   @db.VarChar(20) @default("PENDING")
-  created_at       DateTime @default(now())
+  reason           String?
+  status           String   @default("PENDING")
+  createdAt        DateTime @default(now())
 
-  payment Payment @relation(fields: [payment_id], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id])
 
-  @@unique([razorpay_refund_id])
   @@map("refunds")
 }
 
-# --------------------------------------------------------------------------
-# Observability
-# --------------------------------------------------------------------------
-
 model NotificationLog {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id   String   @db.Uuid
-  booking_id  String?  @db.Uuid
-  channel     String   @db.VarChar(20)            # EMAIL | SMS
-  recipient   String   @db.VarChar(255)
-  type        String   @db.VarChar(50)            # CONFIRMATION | REMINDER_24H | REMINDER_2H | CANCELLATION | RESCHEDULE | PAYMENT_RECEIPT
-  status      String   @db.VarChar(20) @default("PENDING")
-  error_message String? @db.Text
-  attempts    Int      @default(0)
-  sent_at     DateTime? @db.Timestamptz
-  created_at  DateTime @default(now())
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String    @db.Uuid
+  bookingId    String?   @db.Uuid
+  channel      String    @db.VarChar(20)
+  recipient    String    @db.VarChar(255)
+  type         String    @db.VarChar(50)
+  status       String    @default("PENDING") @db.VarChar(20)
+  errorMessage String?
+  attempts     Int       @default(0)
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
 
-  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  booking Booking? @relation(fields: [booking_id], references: [id], onDelete: Cascade)
-
-  @@index([tenant_id, status])
-  @@index([booking_id])
-  @@map("notifications_log")
+  @@map("notification_logs")
 }
 
 model AuditLog {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id   String?  @db.Uuid
-  user_id     String?  @db.Uuid
-  action      String   @db.VarChar(100)
-  entity_type String?  @db.VarChar(50)
-  entity_id   String?  @db.Uuid
-  old_values  Json?
-  new_values  Json?
-  ip_address  String?  @db.Inet          # Postgres INET type
-  user_agent  String?  @db.Text
-  created_at  DateTime @default(now())
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String?  @db.Uuid
+  userId     String?  @db.Uuid
+  action     String   @db.VarChar(100)
+  entityType String?  @db.VarChar(50)
+  entityId   String?  @db.Uuid
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
 
-  tenant Tenant? @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
 
-  @@index([tenant_id])
-  @@index([user_id])
-  @@index([created_at])
   @@map("audit_logs")
 }
 
-# --------------------------------------------------------------------------
-# Analytics (rollup tables, built by the Analytics Kafka consumer)
-# --------------------------------------------------------------------------
-
-model DailyRevenueRollup {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id     String   @db.Uuid
-  date          DateTime @db.Date
-  total_revenue Decimal  @db.Decimal(10, 2) @default(0)
-  total_bookings Int      @default(0)
-  confirmed_bookings Int  @default(0)
-  cancelled_bookings Int  @default(0)
-  no_show_bookings Int    @default(0)
-  updated_at    DateTime @default(now())
-
-  @@unique([tenant_id, date])
-  @@map("daily_revenue_rollup")
-}
-
-model MonthlyRevenueRollup {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id     String   @db.Uuid
-  year          Int
-  month         Int
-  total_revenue Decimal  @db.Decimal(10, 2) @default(0)
-  total_bookings Int      @default(0)
-  confirmed_bookings Int  @default(0)
-  updated_at    DateTime @default(now())
-
-  @@unique([tenant_id, year, month])
-  @@map("monthly_revenue_rollup")
-}
-
-model StaffUtilizationRollup {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id       String   @db.Uuid
-  staff_id        String   @db.Uuid
-  week_start      DateTime @db.Date
-  total_hours     Decimal  @db.Decimal(5, 2) @default(0)  # booked hours
-  available_hours Decimal  @db.Decimal(5, 2) @default(0)   # scheduled hours
-  bookings_count  Int      @default(0)
-  utilization_pct Decimal  @db.Decimal(5, 2) @default(0)
-  updated_at      DateTime @default(now())
-
-  @@unique([tenant_id, staff_id, week_start])
-  @@map("staff_utilization_rollup")
-}
