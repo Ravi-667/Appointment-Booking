@@ -27,6 +27,7 @@
       <label class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
       <input type="date" id="booking-date"
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4"
+        value="<%= new Date().toISOString().split('T')[0] %>"
         min="<%= new Date().toISOString().split('T')[0] %>">
       <div id="slots-container" class="mt-2">
         <p class="text-gray-400 text-sm">Pick a date to see available time slots.</p>
@@ -88,53 +89,71 @@
 
   const dateInput = document.getElementById('booking-date');
   dateInput.addEventListener('change', loadSlots);
+  dateInput.addEventListener('input', loadSlots);
+
+  // Set default date to today or tomorrow if not set, and load slots immediately
+  if (!dateInput.value) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+  }
+  loadSlots();
 
   async function loadSlots() {
     const date = dateInput.value;
     if (!date) return;
     const container = document.getElementById('slots-container');
-    container.innerHTML = '<p class="text-gray-400 text-sm">Loading slots...</p>';
+    container.innerHTML = '<p class="text-gray-400 text-sm">Loading available slots...</p>';
     try {
-      const res = await fetch(`/api/v1/availability?tenantId=${TENANT_ID}&serviceId=${SERVICE_ID}&date=${date}`);
+      const res = await fetch('/api/v1/availability?tenantId=' + encodeURIComponent(TENANT_ID) + '&serviceId=' + encodeURIComponent(SERVICE_ID) + '&date=' + encodeURIComponent(date));
       const data = await res.json();
       if (!data.slots || data.slots.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-sm py-4">No slots available for this date. Try another day.</p>';
         return;
       }
-      container.innerHTML = '<p class="text-sm text-gray-600 mb-3">Available slots (' + data.count + '):</p><div class="grid grid-cols-3 sm:grid-cols-4 gap-2">' +
-        data.slots.map(s => {
-          const t = new Date(s.startTime);
-          const time = t.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-          return `<button onclick="selectSlot(this, '${s.startTime}', '${s.staffId}')"
-            class="slot-btn px-3 py-2 border border-gray-300 rounded-lg text-sm hover:border-primary-500 hover:bg-primary-50 transition text-center">
-            ${time}${s.staffName ? '<br><span class=\\'text-xs text-gray-400\\'>' + s.staffName + '</span>' : ''}
-          </button>`;
-        }).join('') + '</div>';
+      
+      let html = '<p class="text-sm font-medium text-gray-700 mb-3">Available slots (' + data.count + '):</p>';
+      html += '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">';
+      data.slots.forEach(s => {
+        const t = new Date(s.startTime);
+        const time = t.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const staffName = s.staffName || 'Available Specialist';
+        html += '<button type="button" onclick="selectSlot(this, \'' + s.startTime + '\', \'' + (s.staffId || '') + '\')" ' +
+          'class="slot-btn p-3 border border-gray-200 rounded-xl text-left hover:border-primary-500 hover:bg-primary-50/60 transition shadow-sm bg-white focus:outline-none">' +
+          '<div class="font-bold text-gray-900 text-sm">' + time + '</div>' +
+          '<div class="text-xs text-gray-500 mt-0.5">' + staffName + '</div>' +
+          '</button>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
     } catch (err) {
       container.innerHTML = '<p class="text-red-500 text-sm">Error loading slots. Please try again.</p>';
     }
   }
 
   function selectSlot(el, startTime, staffId) {
-    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('border-primary-600','bg-primary-50','ring-2','ring-primary-200'));
-    el.classList.add('border-primary-600','bg-primary-50','ring-2','ring-primary-200');
+    document.querySelectorAll('.slot-btn').forEach(b => {
+      b.classList.remove('border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-300');
+    });
+    el.classList.add('border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-300');
     selectedSlot = { startTime, staffId };
-    // Auto advance after short delay
-    setTimeout(() => goToStep(2), 300);
+    setTimeout(() => goToStep(2), 250);
   }
 
   function goToStep(n) {
-    [1,2,3].forEach(i => {
-      document.getElementById('step-' + i).classList.toggle('hidden', i !== n);
+    [1, 2, 3].forEach(i => {
+      const stepEl = document.getElementById('step-' + i);
+      if (stepEl) stepEl.classList.toggle('hidden', i !== n);
       const ind = document.getElementById('step-ind-' + i);
-      const circle = ind.querySelector('div');
-      const text = ind.querySelector('span');
-      if (i <= n) {
-        circle.className = 'w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold';
-        text.className = 'ml-2 text-sm font-medium text-primary-700';
-      } else {
-        circle.className = 'w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold';
-        text.className = 'ml-2 text-sm font-medium text-gray-500';
+      if (ind) {
+        const circle = ind.querySelector('div');
+        const text = ind.querySelector('span');
+        if (i <= n) {
+          circle.className = 'w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold shadow-sm';
+          text.className = 'ml-2 text-sm font-semibold text-primary-700';
+        } else {
+          circle.className = 'w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold';
+          text.className = 'ml-2 text-sm font-medium text-gray-500';
+        }
       }
     });
   }
@@ -145,47 +164,62 @@
     const email = document.getElementById('cust-email').value.trim();
     if (!name || !email) { alert('Name and email are required.'); return; }
     const btn = document.getElementById('btn-book');
-    btn.disabled = true; btn.textContent = 'Booking...';
+    btn.disabled = true;
+    btn.textContent = 'Securing Booking...';
     try {
-      // Step A: Hold the slot
+      // Step A: Hold the slot in Redis
       const holdRes = await fetch('/api/v1/bookings/hold', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenantId: TENANT_ID, serviceId: SERVICE_ID, staffId: selectedSlot.staffId || undefined,
-          startTime: selectedSlot.startTime, customerName: name, customerEmail: email,
-          customerPhone: document.getElementById('cust-phone').value || undefined
-        })
+          tenantId: TENANT_ID,
+          serviceId: SERVICE_ID,
+          staffId: selectedSlot.staffId || undefined,
+          startTime: selectedSlot.startTime,
+          customerName: name,
+          customerEmail: email,
+          customerPhone: document.getElementById('cust-phone').value || undefined,
+        }),
       });
-      if (!holdRes.ok) { const e = await holdRes.json(); throw new Error(e.message); }
+      if (!holdRes.ok) {
+        const e = await holdRes.json();
+        throw new Error(e.message || 'Slot hold failed');
+      }
       holdData = await holdRes.json();
 
-      // Step B: Create the booking
+      // Step B: Commit the booking
       const bookRes = await fetch('/api/v1/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          holdId: holdData.holdId, sessionToken: holdData.sessionToken,
-          customerName: name, customerEmail: email,
+          holdId: holdData.holdId,
+          sessionToken: holdData.sessionToken,
+          customerName: name,
+          customerEmail: email,
           customerPhone: document.getElementById('cust-phone').value || undefined,
-          notes: document.getElementById('cust-notes').value || undefined
-        })
+          notes: document.getElementById('cust-notes').value || undefined,
+        }),
       });
-      if (!bookRes.ok) { const e = await bookRes.json(); throw new Error(e.message); }
+      if (!bookRes.ok) {
+        const e = await bookRes.json();
+        throw new Error(e.message || 'Booking confirmation failed');
+      }
       const booking = await bookRes.json();
 
-      // Show confirmation
+      // Step C: Display Confirmation Details
       const startDate = new Date(booking.startTime);
-      document.getElementById('confirm-details').innerHTML = `
-        <p><strong>Booking ID:</strong> ${booking.id}</p>
-        <p><strong>Date:</strong> ${startDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-        <p><strong>Time:</strong> ${startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</p>
-        <p><strong>Status:</strong> ${booking.status}</p>
-      `;
+      const timeStr = startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const dateStr = startDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('confirm-details').innerHTML =
+        '<p><strong>Booking ID:</strong> <code class="bg-gray-100 px-1.5 py-0.5 rounded text-primary-700 font-mono text-xs">' + booking.id + '</code></p>' +
+        '<p class="mt-1"><strong>Date:</strong> ' + dateStr + '</p>' +
+        '<p class="mt-1"><strong>Time:</strong> ' + timeStr + '</p>' +
+        '<p class="mt-1"><strong>Status:</strong> <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">' + booking.status + '</span></p>';
       goToStep(3);
     } catch (err) {
       alert(err.message || 'Booking failed. Please try again.');
-      btn.disabled = false; btn.textContent = 'Confirm Booking';
+      btn.disabled = false;
+      btn.textContent = 'Confirm Booking';
     }
   }
 </script>
