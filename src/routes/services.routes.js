@@ -15,6 +15,28 @@ const createServiceSchema = z.object({
   maxConcurrent: z.number().int().min(1).optional(),
 });
 
+const prisma = require("../utils/prisma.client");
+
+router.get("/categories", async (req, res, next) => {
+  try {
+    const categories = await prisma.serviceCategory.findMany({ orderBy: { name: "asc" } });
+    res.json(categories);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/categories", authenticate, requireRole("BUSINESS_OWNER", "PLATFORM_ADMIN"), async (req, res, next) => {
+  try {
+    const { name, icon, color } = req.body;
+    if (!name) return res.status(400).json({ message: "Category name is required" });
+    const category = await prisma.serviceCategory.create({ data: { name, icon, color } });
+    res.status(201).json(category);
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.get("/", authenticate, async (req, res, next) => {
   try { res.json(await servicesService.findAll(req.user.tenantId, req.query.activeOnly !== "false")); } catch (e) { next(e); }
 });

@@ -89,6 +89,82 @@ class NotificationsService {
     });
   }
 
+  async checkAndSendDueReminders() {
+    const now = new Date();
+
+    // 24 Hour Reminders (23h to 25h ahead)
+    const in23h = new Date(now.getTime() + 23 * 3600 * 1000);
+    const in25h = new Date(now.getTime() + 25 * 3600 * 1000);
+
+    const due24h = await prisma.booking.findMany({
+      where: {
+        status: "CONFIRMED",
+        startTime: { gte: in23h, lte: in25h },
+      },
+      select: { id: true },
+    });
+
+    for (const b of due24h) {
+      const alreadySent = await prisma.notificationLog.findFirst({
+        where: { bookingId: b.id, type: "REMINDER_24H", status: "SENT" },
+      });
+      if (!alreadySent) {
+        await this.sendBookingReminder(b.id, 24);
+      }
+    }
+
+    // 1 Hour Reminders (45m to 75m ahead)
+    const in45m = new Date(now.getTime() + 45 * 60 * 1000);
+    const in75m = new Date(now.getTime() + 75 * 60 * 1000);
+
+    const due1h = await prisma.booking.findMany({
+      where: {
+        status: "CONFIRMED",
+        startTime: { gte: in45m, lte: in75m },
+      },
+      select: { id: true },
+    });
+
+    for (const b of due1h) {
+      const alreadySent = await prisma.notificationLog.findFirst({
+        where: { bookingId: b.id, type: "REMINDER_1H", status: "SENT" },
+      });
+      if (!alreadySent) {
+        await this.sendBookingReminder(b.id, 1);
+      }
+    }
+  }
+
+  async sendSMS({ to, message, tenantId, bookingId, type }) {
+    if (!to) return;
+    const log = await prisma.notificationLog.create({
+      data: { tenantId, bookingId: bookingId || null, channel: "SMS", recipient: to, type, status: "PENDING" },
+    });
+
+    try {
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_SENDER_PHONE) {
+        const twilio = require("twilio")(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        await twilio.messages.create({
+          body: message,
+          from: process.env.TWILIO_SENDER_PHONE,
+          to,
+        });
+      } else {
+        console.log(`[DEV SMS] to: ${to} | ${message}`);
+      }
+      await prisma.notificationLog.update({
+        where: { id: log.id },
+        data: { status: "SENT", sentAt: new Date(), attempts: 1 },
+      });
+    } catch (err) {
+      await prisma.notificationLog.update({
+        where: { id: log.id },
+        data: { status: "FAILED", errorMessage: err.message, attempts: { increment: 1 } },
+      });
+      console.error(`✗ SMS failed to ${to}:`, err.message);
+    }
+  }
+
   async _send({ to, subject, html, tenantId, bookingId, type }) {
     const log = await prisma.notificationLog.create({
       data: { tenantId, bookingId: bookingId || null, channel: "EMAIL", recipient: to, type, status: "PENDING" },

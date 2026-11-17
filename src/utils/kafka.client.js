@@ -1,4 +1,4 @@
-const { Kafka } = require("kafkajs");
+const { Kafka, Partitioners } = require("kafkajs");
 
 const kafka = new Kafka({
   clientId: "booking-api",
@@ -6,7 +6,9 @@ const kafka = new Kafka({
   retry: { retries: 3 },
 });
 
-const producer = kafka.producer();
+const producer = kafka.producer({
+  createPartitioner: Partitioners.LegacyPartitioner,
+});
 let producerConnected = false;
 
 async function connectProducer() {

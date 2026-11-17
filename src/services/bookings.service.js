@@ -3,6 +3,7 @@ const { addMinutes } = require("date-fns");
 const prisma = require("../utils/prisma.client");
 const redis = require("../utils/redis.client");
 const kafka = require("../utils/kafka.client");
+const auditService = require("./audit.service");
 
 function makeError(msg, status) { const e = new Error(msg); e.status = status; return e; }
 
@@ -87,7 +88,33 @@ class BookingsService {
     }
     await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED", cancellationReason: reason } });
     await kafka.publish("booking.cancelled", { bookingId, tenantId, reason });
+    await auditService.record({
+      tenantId,
+      action: "BOOKING_CANCELLED",
+      entityType: "Booking",
+      entityId: bookingId,
+      newValues: { reason },
+    });
     return { message: "Booking cancelled successfully" };
+  }
+
+  async markNoShow(tenantId, bookingId) {
+    const booking = await prisma.booking.findFirst({ where: { id: bookingId, tenantId } });
+    if (!booking) throw makeError("Booking not found", 404);
+    if (booking.status !== "CONFIRMED") {
+      throw makeError("Only CONFIRMED bookings can be marked as NO_SHOW", 400);
+    }
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: "NO_SHOW" },
+    });
+    await auditService.record({
+      tenantId,
+      action: "BOOKING_NO_SHOW",
+      entityType: "Booking",
+      entityId: bookingId,
+    });
+    return updated;
   }
 
   async reschedule(tenantId, bookingId, newStartTime) {
@@ -98,7 +125,7 @@ class BookingsService {
     const newStart = new Date(newStartTime);
     const newEnd = addMinutes(newStart, service.durationMinutes);
 
-    return prisma.$transaction(async (tx) => {
+    const rescheduled = await prisma.$transaction(async (tx) => {
       await tx.booking.update({ where: { id: bookingId }, data: { status: "RESCHEDULED" } });
       return tx.booking.create({
         data: {
@@ -110,6 +137,17 @@ class BookingsService {
         },
       });
     });
+
+    await auditService.record({
+      tenantId,
+      action: "BOOKING_RESCHEDULED",
+      entityType: "Booking",
+      entityId: rescheduled.id,
+      oldValues: { bookingId, oldStartTime: booking.startTime },
+      newValues: { newStartTime: rescheduled.startTime },
+    });
+
+    return rescheduled;
   }
 
   async getBookings(tenantId, { page = 1, limit = 20, status, from, to } = {}) {

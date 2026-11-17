@@ -35,6 +35,21 @@ router.get("/me", authenticate, async (req, res, next) => {
   try { res.json(await authService.getMe(req.user.id)); } catch (e) { next(e); }
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).regex(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])/, {
+    message: "New password needs uppercase, number and special character",
+  }),
+});
+
+router.post("/change-password", authenticate, validate(changePasswordSchema), async (req, res, next) => {
+  try {
+    res.json(await authService.changePassword(req.user.id, req.body.currentPassword, req.body.newPassword));
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.post("/forgot-password", authLimiter, async (req, res, next) => {
   try { res.json(await authService.forgotPassword(req.body.email)); } catch (e) { next(e); }
 });

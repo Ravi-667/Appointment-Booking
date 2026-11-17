@@ -84,6 +84,22 @@ class AuthService {
     });
     return { message: "Password reset successfully" };
   }
+
+  async changePassword(userId, currentPassword, newPassword) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.passwordHash) throw makeError("User not found", 404);
+
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) throw makeError("Current password is incorrect", 400);
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    return { message: "Password changed successfully" };
+  }
 }
 
 module.exports = new AuthService();
