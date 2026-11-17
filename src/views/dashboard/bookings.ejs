@@ -26,13 +26,13 @@
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-            <th class="px-4 py-3"></th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
           <% if (result.bookings && result.bookings.length > 0) { %>
             <% result.bookings.forEach(b => { %>
-            <tr class="hover:bg-gray-50">
+            <tr class="hover:bg-primary-50/40 cursor-pointer transition" onclick="window.location.href='/dashboard/bookings/<%= b.id %>'">
               <td class="px-4 py-3">
                 <p class="font-medium text-gray-900 text-sm"><%= b.customerName %></p>
                 <p class="text-xs text-gray-500"><%= b.customerEmail %></p>
@@ -48,7 +48,15 @@
                 <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-<%= colors[b.status] || 'gray' %>-100 text-<%= colors[b.status] || 'gray' %>-800"><%= b.status %></span>
               </td>
               <td class="px-4 py-3 text-sm font-medium text-gray-900">₹<%= Number(b.price).toLocaleString() %></td>
-              <td class="px-4 py-3"><a href="/dashboard/bookings/<%= b.id %>" class="text-primary-600 hover:text-primary-700 text-sm">View</a></td>
+              <td class="px-4 py-3 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                <a href="/dashboard/bookings/<%= b.id %>"
+                   class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded-lg shadow-sm transition">
+                  <span>View</span>
+                  <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              </td>
             </tr>
             <% }) %>
           <% } else { %>
