@@ -11,7 +11,7 @@ function makeError(message, status) {
 
 class AuthService {
   async register({ name, email, password, role }) {
-    const existing = await prisma.user.findFirst({ where: { email, tenantId: null } });
+    const existing = await prisma.user.findFirst({ where: { email } });
     if (existing) throw makeError("Email already registered", 409);
 
     const passwordHash = await bcrypt.hash(password, 12);
@@ -22,7 +22,7 @@ class AuthService {
   }
 
   async login(email, password) {
-    const user = await prisma.user.findFirst({ where: { email, tenantId: null } });
+    const user = await prisma.user.findFirst({ where: { email } });
     if (!user || !user.passwordHash) throw makeError("Invalid credentials", 401);
     if (!user.emailVerified) throw makeError("Please verify your email", 401);
     if (!user.isActive) throw makeError("Account deactivated", 401);
@@ -60,7 +60,7 @@ class AuthService {
   }
 
   async forgotPassword(email) {
-    const user = await prisma.user.findFirst({ where: { email, tenantId: null } });
+    const user = await prisma.user.findFirst({ where: { email } });
     if (!user) return { message: "If that email exists, a reset link has been sent." };
     const token = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
