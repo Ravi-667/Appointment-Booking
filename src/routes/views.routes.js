@@ -27,8 +27,19 @@ function requireTenant(req, res, next) {
 
 // ─── PUBLIC PAGES ───────────────────────────────────────────────────────────
 
-router.get("/", (req, res) => {
-  res.render("home", { title: "Home" });
+router.get("/", async (req, res) => {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      where: { isActive: true },
+      include: {
+        services: { where: { isActive: true }, take: 4 },
+      },
+      take: 6,
+    });
+    res.render("home", { title: "Home", tenants });
+  } catch (err) {
+    res.render("home", { title: "Home", tenants: [] });
+  }
 });
 
 // ─── AUTH PAGES ─────────────────────────────────────────────────────────────

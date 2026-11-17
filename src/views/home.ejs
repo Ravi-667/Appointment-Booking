@@ -5,12 +5,56 @@
       <h1 class="text-4xl sm:text-5xl font-extrabold leading-tight">Book Appointments<br>In Seconds</h1>
       <p class="mt-4 text-lg text-primary-100">A complete appointment booking platform for salons, clinics, and service businesses. Set up your business, manage staff, and let customers book online.</p>
       <div class="mt-8 flex flex-wrap gap-4">
-        <a href="/register" class="px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg shadow hover:bg-gray-50 transition">Get Started Free</a>
+        <a href="#featured-salons" class="px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg shadow hover:bg-gray-50 transition">Book an Appointment</a>
+        <a href="/register" class="px-6 py-3 bg-primary-700 text-white font-semibold rounded-lg border border-primary-500 hover:bg-primary-600 transition">Register Your Business</a>
         <a href="/lookup" class="px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition">Track My Booking</a>
       </div>
     </div>
   </div>
 </section>
+
+<!-- Featured Businesses for Customers to Book -->
+<% if (typeof tenants !== 'undefined' && tenants && tenants.length > 0) { %>
+<section id="featured-salons" class="max-w-7xl mx-auto px-4 py-14">
+  <div class="text-center max-w-2xl mx-auto mb-10">
+    <span class="text-xs uppercase font-bold tracking-wider text-primary-600 bg-primary-50 px-3 py-1 rounded-full">Customer Booking</span>
+    <h2 class="text-3xl font-extrabold text-gray-900 mt-2">Book an Appointment Online</h2>
+    <p class="text-gray-600 mt-2">Select a business below to browse services, check real-time availability, and reserve your slot instantly.</p>
+  </div>
+
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <% tenants.forEach(t => { %>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:border-primary-400 hover:shadow-md transition overflow-hidden flex flex-col justify-between">
+        <div class="p-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <h3 class="text-xl font-bold text-gray-900"><%= t.name %></h3>
+              <p class="text-xs text-primary-600 font-medium mt-0.5">📍 <%= t.address || 'Local Studio' %></p>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+              Open for Bookings
+            </span>
+          </div>
+
+          <p class="text-sm text-gray-600 mt-3">
+            <%= t.services && t.services.length ? t.services.length + '+ services available (Haircut, Styling, Spa & more)' : 'Professional appointment services.' %>
+          </p>
+
+          <% if (t.phone) { %>
+            <p class="text-xs text-gray-500 mt-2">📞 <%= t.phone %></p>
+          <% } %>
+        </div>
+
+        <div class="p-6 pt-0">
+          <a href="/business/<%= t.slug %>" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition shadow-sm">
+            View Services &amp; Book &rarr;
+          </a>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</section>
+<% } %>
 
 <section class="max-w-7xl mx-auto px-4 py-16">
   <h2 class="text-2xl font-bold text-gray-900 text-center mb-12">How It Works</h2>
