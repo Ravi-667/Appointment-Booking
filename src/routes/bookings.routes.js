@@ -45,6 +45,10 @@ router.get("/lookup", async (req, res, next) => {
   try {
     const { id, email } = req.query;
     if (!id || !email) return res.status(400).json({ message: "id and email are required" });
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      return res.status(404).json({ message: "Booking not found. Please check your Booking ID and email." });
+    }
     const prisma = require("../utils/prisma.client");
     const booking = await prisma.booking.findFirst({
       where: { id, customerEmail: email },
