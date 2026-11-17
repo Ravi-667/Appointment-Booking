@@ -12,9 +12,13 @@ function getRedisClient() {
     }
     return new Redis(url, {
       lazyConnect: true,
-      maxRetriesPerRequest: null,
+      maxRetriesPerRequest: 1,
+      connectTimeout: 4000,
+      commandTimeout: 2500,
+      enableOfflineQueue: false,
       retryStrategy(times) {
-        return Math.min(times * 100, 3000);
+        if (times > 3) return null; // Stop retrying after 3 attempts
+        return Math.min(times * 200, 1000);
       },
     });
   }
@@ -23,9 +27,13 @@ function getRedisClient() {
     host: process.env.REDIS_HOST || "localhost",
     port: parseInt(process.env.REDIS_PORT || "6379"),
     lazyConnect: true,
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: 1,
+    connectTimeout: 4000,
+    commandTimeout: 2500,
+    enableOfflineQueue: false,
     retryStrategy(times) {
-      return Math.min(times * 100, 3000);
+      if (times > 3) return null;
+      return Math.min(times * 200, 1000);
     },
   });
 }

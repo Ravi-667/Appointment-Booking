@@ -20,9 +20,21 @@ class BookingsService {
     const sessionToken = crypto.randomBytes(32).toString("hex");
 
     const lockKey = `hold:${tenantId}:${staffId || "any"}:${start.toISOString()}`;
-    const result = await redis.set(lockKey, sessionToken, "EX", HOLD_TTL, "NX");
+    let locked = true;
+    try {
+      const lockPromise = redis.set(lockKey, sessionToken, "EX", HOLD_TTL, "NX");
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Redis lock timeout")), 2000));
+      const res = await Promise.race([lockPromise, timeoutPromise]);
+      if (res === null) {
+        locked = false; // Slot already locked by another user
+      }
+    } catch (err) {
+      console.warn("Redis hold lock warning (proceeding with DB transaction):", err.message);
+    }
 
-    if (!result) throw makeError("This slot was just taken. Please choose another time.", 409);
+    if (!locked) {
+      throw makeError("This slot was just taken. Please choose another time.", 409);
+    }
 
     const hold = await prisma.bookingHold.create({
       data: { tenantId, serviceId, staffId: staffId || null, startTime: start, endTime: end, sessionToken, expiresAt: new Date(Date.now() + HOLD_TTL * 1000) },
@@ -62,7 +74,14 @@ class BookingsService {
         return b;
       });
 
-      await redis.del(`hold:${hold.tenantId}:${hold.staffId || "any"}:${hold.startTime.toISOString()}`);
+      try {
+        await Promise.race([
+          redis.del(`hold:${hold.tenantId}:${hold.staffId || "any"}:${hold.startTime.toISOString()}`),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Redis timeout")), 1500)),
+        ]);
+      } catch (e) {
+        // Redis cleanup failure is non-fatal
+      }
       return booking;
     } catch (err) {
       if (err.message?.includes("no_double_booking")) {
