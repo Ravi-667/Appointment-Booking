@@ -22,32 +22,65 @@
     <p class="text-gray-600 mt-2">Select a business below to browse services, check real-time availability, and reserve your slot instantly.</p>
   </div>
 
-  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <% tenants.forEach(t => { %>
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:border-primary-400 hover:shadow-md transition overflow-hidden flex flex-col justify-between">
+  <div class="grid sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+    <% tenants.forEach(t => { 
+        const categoryColors = {
+          'Salon & Spa': 'bg-pink-50 text-pink-700 border-pink-200',
+          'Dental & Healthcare': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+          'Physiotherapy & Fitness': 'bg-amber-50 text-amber-700 border-amber-200',
+          "Men's Salon & Grooming": 'bg-purple-50 text-purple-700 border-purple-200'
+        };
+        const badgeColor = categoryColors[t.category] || 'bg-blue-50 text-blue-700 border-blue-200';
+    %>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:border-primary-400 hover:shadow-lg transition duration-200 overflow-hidden flex flex-col justify-between group">
         <div class="p-6">
-          <div class="flex items-start justify-between">
-            <div>
-              <h3 class="text-xl font-bold text-gray-900"><%= t.name %></h3>
-              <p class="text-xs text-primary-600 font-medium mt-0.5">📍 <%= t.address || 'Local Studio' %></p>
-            </div>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-              Open for Bookings
+          <div class="flex items-center justify-between mb-3">
+            <span class="inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border <%= badgeColor %>">
+              <%= t.category || 'Service Business' %>
+            </span>
+            <span class="inline-flex items-center text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> Open
             </span>
           </div>
 
-          <p class="text-sm text-gray-600 mt-3">
-            <%= t.services && t.services.length ? t.services.length + '+ services available (Haircut, Styling, Spa & more)' : 'Professional appointment services.' %>
+          <h3 class="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition"><%= t.name %></h3>
+          <p class="text-xs text-gray-500 font-medium mt-1.5 flex items-start">
+            <span class="mr-1">📍</span><span><%= t.address || 'Local Studio' %></span>
           </p>
 
+          <div class="mt-4 pt-4 border-t border-gray-100">
+            <p class="text-xs uppercase font-semibold tracking-wider text-gray-400 mb-2">Available Services</p>
+            <div class="flex flex-wrap gap-1.5">
+              <% if (t.services && t.services.length) { %>
+                <% t.services.slice(0, 3).forEach(s => { %>
+                  <span class="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+                    <%= s.name.length > 24 ? s.name.slice(0, 22) + '...' : s.name %>
+                  </span>
+                <% }) %>
+                <% if (t.services.length > 3) { %>
+                  <span class="inline-block px-2 py-1 bg-gray-50 text-gray-400 rounded-md text-xs font-medium">
+                    +<%= t.services.length - 3 %> more
+                  </span>
+                <% } %>
+              <% } else { %>
+                <span class="text-xs text-gray-400">Services available online</span>
+              <% } %>
+            </div>
+          </div>
+
           <% if (t.phone) { %>
-            <p class="text-xs text-gray-500 mt-2">📞 <%= t.phone %></p>
+            <p class="text-xs text-gray-500 mt-4 flex items-center">
+              <span class="mr-1">📞</span><%= t.phone %>
+            </p>
           <% } %>
         </div>
 
         <div class="p-6 pt-0">
-          <a href="/business/<%= t.slug %>" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition shadow-sm">
-            View Services &amp; Book &rarr;
+          <a href="/business/<%= t.slug %>" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm rounded-xl transition shadow-sm group-hover:shadow">
+            <span>View Services &amp; Book</span>
+            <svg class="w-4 h-4 ml-1.5 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
           </a>
         </div>
       </div>
