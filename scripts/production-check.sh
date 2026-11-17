@@ -6,7 +6,7 @@ echo ""
 
 # Check environment variables
 echo "1. Checking required environment variables..."
-required_vars=("DATABASE_URL" "REDIS_HOST" "JWT_PRIVATE_KEY" "JWT_PUBLIC_KEY" "RAZORPAY_KEY_ID" "RAZORPAY_KEY_SECRET" "RAZORPAY_WEBHOOK_SECRET")
+required_vars=("DATABASE_URL" "REDIS_HOST" "JWT_ACCESS_SECRET" "JWT_REFRESH_SECRET" "RAZORPAY_KEY_ID" "RAZORPAY_KEY_SECRET" "RAZORPAY_WEBHOOK_SECRET")
 for var in "${required_vars[@]}"; do
   if [ -z "${!var}" ]; then
     echo "   ❌ $var is not set"

@@ -37,15 +37,8 @@ test-results/
 playwright-report/
 
 # Uploads
-uploads/
-*.pdf
-*.png
-*.jpg
-*.jpeg
-*.webp
-*.gif
-*.ico
-*.svg
+src/public/uploads/*
+!src/public/uploads/.gitkeep
 
 # Logs
 logs/

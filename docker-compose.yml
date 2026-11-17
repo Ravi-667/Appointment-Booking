@@ -26,8 +26,6 @@
 #
 # =============================================================================
 
-version: '3.8'
-
 services:
   # --------------------------------------------------------------------------
   # PostgreSQL 15 — Primary Database
@@ -63,7 +61,7 @@ services:
       - '6379:6379'
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory allkeys-lru --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
       interval: 5s
@@ -132,12 +130,13 @@ services:
       - booking-net
 
   # --------------------------------------------------------------------------
-  # API — NestJS application (builds and starts from Dockerfile.api)
+  # API — Node.js Express application
   # --------------------------------------------------------------------------
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile.api
+      target: development
     container_name: booking_api
     environment:
       - NODE_ENV=development
@@ -148,10 +147,8 @@ services:
       - KAFKA_BROKERS=kafka:9092
       - SMTP_HOST=mailhog
       - SMTP_PORT=1025
-      # JWT keys are mounted from your host .env via a small sidecar-less approach:
-      # build time. In production, inject via Kubernetes secrets / Secrets Manager.
-      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
     ports:
       - '3000:3000'
     volumes:
@@ -167,58 +164,7 @@ services:
         condition: service_healthy
     networks:
       - booking-net
-    command: /bin/sh -c "npm run prisma:migrate && npm run start:dev"
-
-  # --------------------------------------------------------------------------
-  # Worker — BullMQ background job processor
-  # --------------------------------------------------------------------------
-  worker:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.worker
-    container_name: booking_worker
-    environment:
-      - NODE_ENV=development
-      - PORT=3001
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/booking_dev
-      - REDIS_HOST=redis
-      - KAFKA_BROKERS=kafka:9092
-      - KAFKA_CONSUMER_GROUP=worker
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    networks:
-      - booking-net
-    command: npm run start:worker
-
-  # --------------------------------------------------------------------------
-  # Analytics — Kafka consumer (rollup tables)
-  # --------------------------------------------------------------------------
-  analytics:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.analytics
-    container_name: booking_analytics
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/booking_dev
-      - REDIS_HOST=redis
-      - KAFKA_BROKERS=kafka:9092
-      - KAFKA_CONSUMER_GROUP=analytics
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    networks:
-      - booking-net
-    command: npm run start:analytics
+    command: /bin/sh -c "npx prisma generate && npm run dev"
 
 volumes:
   postgres_data:

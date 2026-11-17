@@ -1,0 +1,9 @@
+{
+  "watch": ["src", "prisma/schema.prisma"],
+  "ext": "js,json,ejs,prisma",
+  "ignore": ["node_modules", "test", "src/public/uploads"],
+  "delay": "500",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
