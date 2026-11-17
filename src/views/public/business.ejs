@@ -1,0 +1,69 @@
+<!-- Public business page -->
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <!-- Business header -->
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-8 py-10 text-white">
+      <h1 class="text-3xl font-bold"><%= tenant.name %></h1>
+      <% if (tenant.category) { %>
+        <span class="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-sm"><%= tenant.category %></span>
+      <% } %>
+      <% if (tenant.phone) { %>
+        <p class="mt-2 text-primary-100">📞 <%= tenant.phone %></p>
+      <% } %>
+      <% if (tenant.address) { %>
+        <p class="mt-1 text-primary-100">📍 <%= tenant.address %></p>
+      <% } %>
+    </div>
+
+    <!-- Business hours -->
+    <div class="px-8 py-6 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3">Business Hours</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <% const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; %>
+        <% if (tenant.businessHours) { tenant.businessHours.forEach(h => { %>
+          <div class="text-sm p-2 rounded-lg <%= h.isOpen ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-400' %>">
+            <span class="font-medium"><%= days[h.dayOfWeek] %></span>
+            <% if (h.isOpen) { %>
+              <br><%= h.openTime %> – <%= h.closeTime %>
+            <% } else { %>
+              <br>Closed
+            <% } %>
+          </div>
+        <% }) } %>
+      </div>
+    </div>
+
+    <!-- Services list -->
+    <div class="px-8 py-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Our Services</h2>
+      <% if (tenant.services && tenant.services.length > 0) { %>
+        <div class="space-y-3">
+          <% tenant.services.forEach(service => { %>
+          <div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-primary-300 hover:shadow-sm transition">
+            <div>
+              <h3 class="font-semibold text-gray-900"><%= service.name %></h3>
+              <% if (service.description) { %><p class="text-sm text-gray-500 mt-0.5"><%= service.description %></p><% } %>
+              <div class="flex items-center space-x-3 mt-1 text-sm text-gray-500">
+                <span>⏱ <%= service.durationMinutes %> min</span>
+                <% if (service.category) { %><span>📂 <%= service.category.name %></span><% } %>
+              </div>
+            </div>
+            <div class="text-right ml-4">
+              <p class="text-lg font-bold text-gray-900">₹<%= Number(service.price).toLocaleString() %></p>
+              <% if (Number(service.depositAmount) > 0) { %>
+                <p class="text-xs text-gray-500">Deposit: ₹<%= Number(service.depositAmount).toLocaleString() %></p>
+              <% } %>
+              <a href="/book/<%= tenant.slug %>?serviceId=<%= service.id %>"
+                class="mt-2 inline-block px-4 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition">
+                Book Now
+              </a>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <p class="text-gray-500 text-center py-8">No services available at this time.</p>
+      <% } %>
+    </div>
+  </div>
+</div>

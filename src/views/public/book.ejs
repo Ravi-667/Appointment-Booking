@@ -1,0 +1,191 @@
+<!-- Multi-step booking flow -->
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <div class="bg-white rounded-2xl shadow-lg p-8">
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">Book at <span class="text-primary-600"><%= tenant.name %></span></h1>
+    <p class="text-gray-500 mb-6"><%= service.name %> — <%= service.durationMinutes %> min — ₹<%= Number(service.price).toLocaleString() %></p>
+
+    <!-- Step indicators -->
+    <div class="flex items-center mb-8">
+      <div class="step-indicator active flex items-center" id="step-ind-1">
+        <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold">1</div>
+        <span class="ml-2 text-sm font-medium text-primary-700">Date & Time</span>
+      </div>
+      <div class="flex-1 h-0.5 bg-gray-200 mx-3"></div>
+      <div class="step-indicator flex items-center" id="step-ind-2">
+        <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold">2</div>
+        <span class="ml-2 text-sm font-medium text-gray-500">Your Details</span>
+      </div>
+      <div class="flex-1 h-0.5 bg-gray-200 mx-3"></div>
+      <div class="step-indicator flex items-center" id="step-ind-3">
+        <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold">3</div>
+        <span class="ml-2 text-sm font-medium text-gray-500">Confirm</span>
+      </div>
+    </div>
+
+    <!-- Step 1: Date & Slot -->
+    <div id="step-1">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+      <input type="date" id="booking-date"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4"
+        min="<%= new Date().toISOString().split('T')[0] %>">
+      <div id="slots-container" class="mt-2">
+        <p class="text-gray-400 text-sm">Pick a date to see available time slots.</p>
+      </div>
+    </div>
+
+    <!-- Step 2: Customer Info -->
+    <div id="step-2" class="hidden">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+          <input type="text" id="cust-name" required
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+          <input type="email" id="cust-email" required
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+          <input type="tel" id="cust-phone"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+          <textarea id="cust-notes" rows="3"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="goToStep(1)" class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Back</button>
+          <button onclick="submitBooking()" id="btn-book"
+            class="flex-1 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition">
+            Confirm Booking
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Confirmation -->
+    <div id="step-3" class="hidden text-center py-8">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h2 class="text-xl font-bold text-gray-900">Booking Created!</h2>
+      <p class="text-gray-500 mt-2" id="confirm-msg">Your appointment has been booked.</p>
+      <div id="confirm-details" class="mt-4 p-4 bg-gray-50 rounded-lg text-left text-sm space-y-1"></div>
+      <a href="/business/<%= tenant.slug %>" class="mt-6 inline-block px-6 py-2.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition">Book Another</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const TENANT_ID = '<%= tenant.id %>';
+  const SERVICE_ID = '<%= service.id %>';
+  const TENANT_SLUG = '<%= tenant.slug %>';
+  let selectedSlot = null;
+  let holdData = null;
+
+  const dateInput = document.getElementById('booking-date');
+  dateInput.addEventListener('change', loadSlots);
+
+  async function loadSlots() {
+    const date = dateInput.value;
+    if (!date) return;
+    const container = document.getElementById('slots-container');
+    container.innerHTML = '<p class="text-gray-400 text-sm">Loading slots...</p>';
+    try {
+      const res = await fetch(`/api/v1/availability?tenantId=${TENANT_ID}&serviceId=${SERVICE_ID}&date=${date}`);
+      const data = await res.json();
+      if (!data.slots || data.slots.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm py-4">No slots available for this date. Try another day.</p>';
+        return;
+      }
+      container.innerHTML = '<p class="text-sm text-gray-600 mb-3">Available slots (' + data.count + '):</p><div class="grid grid-cols-3 sm:grid-cols-4 gap-2">' +
+        data.slots.map(s => {
+          const t = new Date(s.startTime);
+          const time = t.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+          return `<button onclick="selectSlot(this, '${s.startTime}', '${s.staffId}')"
+            class="slot-btn px-3 py-2 border border-gray-300 rounded-lg text-sm hover:border-primary-500 hover:bg-primary-50 transition text-center">
+            ${time}${s.staffName ? '<br><span class=\\'text-xs text-gray-400\\'>' + s.staffName + '</span>' : ''}
+          </button>`;
+        }).join('') + '</div>';
+    } catch (err) {
+      container.innerHTML = '<p class="text-red-500 text-sm">Error loading slots. Please try again.</p>';
+    }
+  }
+
+  function selectSlot(el, startTime, staffId) {
+    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('border-primary-600','bg-primary-50','ring-2','ring-primary-200'));
+    el.classList.add('border-primary-600','bg-primary-50','ring-2','ring-primary-200');
+    selectedSlot = { startTime, staffId };
+    // Auto advance after short delay
+    setTimeout(() => goToStep(2), 300);
+  }
+
+  function goToStep(n) {
+    [1,2,3].forEach(i => {
+      document.getElementById('step-' + i).classList.toggle('hidden', i !== n);
+      const ind = document.getElementById('step-ind-' + i);
+      const circle = ind.querySelector('div');
+      const text = ind.querySelector('span');
+      if (i <= n) {
+        circle.className = 'w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold';
+        text.className = 'ml-2 text-sm font-medium text-primary-700';
+      } else {
+        circle.className = 'w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold';
+        text.className = 'ml-2 text-sm font-medium text-gray-500';
+      }
+    });
+  }
+
+  async function submitBooking() {
+    if (!selectedSlot) { alert('Please select a time slot first.'); return goToStep(1); }
+    const name = document.getElementById('cust-name').value.trim();
+    const email = document.getElementById('cust-email').value.trim();
+    if (!name || !email) { alert('Name and email are required.'); return; }
+    const btn = document.getElementById('btn-book');
+    btn.disabled = true; btn.textContent = 'Booking...';
+    try {
+      // Step A: Hold the slot
+      const holdRes = await fetch('/api/v1/bookings/hold', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: TENANT_ID, serviceId: SERVICE_ID, staffId: selectedSlot.staffId || undefined,
+          startTime: selectedSlot.startTime, customerName: name, customerEmail: email,
+          customerPhone: document.getElementById('cust-phone').value || undefined
+        })
+      });
+      if (!holdRes.ok) { const e = await holdRes.json(); throw new Error(e.message); }
+      holdData = await holdRes.json();
+
+      // Step B: Create the booking
+      const bookRes = await fetch('/api/v1/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          holdId: holdData.holdId, sessionToken: holdData.sessionToken,
+          customerName: name, customerEmail: email,
+          customerPhone: document.getElementById('cust-phone').value || undefined,
+          notes: document.getElementById('cust-notes').value || undefined
+        })
+      });
+      if (!bookRes.ok) { const e = await bookRes.json(); throw new Error(e.message); }
+      const booking = await bookRes.json();
+
+      // Show confirmation
+      const startDate = new Date(booking.startTime);
+      document.getElementById('confirm-details').innerHTML = `
+        <p><strong>Booking ID:</strong> ${booking.id}</p>
+        <p><strong>Date:</strong> ${startDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p><strong>Time:</strong> ${startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</p>
+        <p><strong>Status:</strong> ${booking.status}</p>
+      `;
+      goToStep(3);
+    } catch (err) {
+      alert(err.message || 'Booking failed. Please try again.');
+      btn.disabled = false; btn.textContent = 'Confirm Booking';
+    }
+  }
+</script>

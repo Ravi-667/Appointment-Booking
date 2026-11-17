@@ -87,18 +87,28 @@ async function startCleanupJob() {
     const { Queue, Worker } = require("bullmq");
     const bookingsService = require("./services/bookings.service");
 
-    const cleanupQueue = new Queue("cleanup", {
-      connection: { host: process.env.REDIS_HOST || "localhost", port: parseInt(process.env.REDIS_PORT || "6379") },
-    });
+    const redisConn = {
+      host: process.env.REDIS_HOST || "localhost",
+      port: parseInt(process.env.REDIS_PORT || "6379"),
+      maxRetriesPerRequest: null,
+    };
+
+    const cleanupQueue = new Queue("cleanup", { connection: redisConn });
 
     // Add repeating job every 5 minutes
     await cleanupQueue.upsertJobScheduler("cleanup-holds", { every: 5 * 60 * 1000 }, { name: "cleanup-expired-holds", data: {} });
+    // Add repeating reminder job every 15 minutes
+    await cleanupQueue.upsertJobScheduler("send-reminders", { every: 15 * 60 * 1000 }, { name: "send-booking-reminders", data: {} });
+
+    const notificationsService = require("./services/notifications.service");
 
     new Worker("cleanup", async (job) => {
       if (job.name === "cleanup-expired-holds") {
         await bookingsService.cleanupExpiredHolds();
+      } else if (job.name === "send-booking-reminders") {
+        await notificationsService.checkAndSendDueReminders();
       }
-    }, { connection: { host: process.env.REDIS_HOST || "localhost", port: parseInt(process.env.REDIS_PORT || "6379") } });
+    }, { connection: redisConn });
 
     console.log("✓ BullMQ cleanup worker running");
   } catch (err) {
@@ -112,6 +122,11 @@ server.listen(PORT, async () => {
   console.log(`✓ API docs at http://localhost:${PORT}/api/docs`);
   console.log(`✓ Mailhog UI at http://localhost:8025`);
   console.log(`✓ Prisma Studio: run "npx prisma studio"\n`);
+
+  const prisma = require("./utils/prisma.client");
+  prisma.$connect()
+    .then(() => console.log("✓ PostgreSQL connected via Prisma"))
+    .catch((err) => console.warn("PostgreSQL not reachable (run docker compose up):", err.message));
 
   await startKafkaConsumer();
   await startCleanupJob();

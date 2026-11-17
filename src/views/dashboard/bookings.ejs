@@ -1,0 +1,73 @@
+<!-- Bookings list -->
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Bookings</h1>
+    <form class="mt-3 sm:mt-0 flex items-center space-x-2" method="GET" action="/dashboard/bookings">
+      <select name="status" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white">
+        <option value="">All Status</option>
+        <% ['CONFIRMED','PENDING_PAYMENT','CANCELLED','RESCHEDULED','PAYMENT_FAILED','NO_SHOW'].forEach(s => { %>
+        <option value="<%= s %>" <%= typeof query !== 'undefined' && query.status === s ? 'selected' : '' %>><%= s %></option>
+        <% }) %>
+      </select>
+      <input type="date" name="from" value="<%= typeof query !== 'undefined' && query.from ? query.from : '' %>" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+      <input type="date" name="to" value="<%= typeof query !== 'undefined' && query.to ? query.to : '' %>" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+      <button type="submit" class="px-4 py-1.5 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition">Filter</button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <% if (result.bookings && result.bookings.length > 0) { %>
+            <% result.bookings.forEach(b => { %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3">
+                <p class="font-medium text-gray-900 text-sm"><%= b.customerName %></p>
+                <p class="text-xs text-gray-500"><%= b.customerEmail %></p>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-700"><%= b.service ? b.service.name : '-' %></td>
+              <td class="px-4 py-3 text-sm text-gray-700">
+                <%= new Date(b.startTime).toLocaleDateString('en-IN', { month:'short', day:'numeric', year:'numeric' }) %><br>
+                <span class="text-gray-500"><%= new Date(b.startTime).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true }) %></span>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-700"><%= b.staff ? b.staff.name : '—' %></td>
+              <td class="px-4 py-3">
+                <% const colors = { CONFIRMED:'green', PENDING_PAYMENT:'yellow', CANCELLED:'red', RESCHEDULED:'blue', PAYMENT_FAILED:'red', NO_SHOW:'orange' }; %>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-<%= colors[b.status] || 'gray' %>-100 text-<%= colors[b.status] || 'gray' %>-800"><%= b.status %></span>
+              </td>
+              <td class="px-4 py-3 text-sm font-medium text-gray-900">₹<%= Number(b.price).toLocaleString() %></td>
+              <td class="px-4 py-3"><a href="/dashboard/bookings/<%= b.id %>" class="text-primary-600 hover:text-primary-700 text-sm">View</a></td>
+            </tr>
+            <% }) %>
+          <% } else { %>
+            <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No bookings found</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination -->
+    <% if (result.pages > 1) { %>
+    <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+      <p class="text-sm text-gray-500">Page <%= result.page %> of <%= result.pages %> (<%= result.total %> total)</p>
+      <div class="flex space-x-1">
+        <% for (let p = 1; p <= result.pages; p++) { %>
+        <a href="/dashboard/bookings?page=<%= p %><%= typeof query !== 'undefined' && query.status ? '&status=' + query.status : '' %>"
+          class="px-3 py-1 text-sm rounded <%= p === result.page ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200' %>"><%= p %></a>
+        <% } %>
+      </div>
+    </div>
+    <% } %>
+  </div>
+</div>
