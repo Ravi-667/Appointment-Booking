@@ -1,5 +1,15 @@
 /* Custom styles — supplement Tailwind CDN */
 
+/* Ensure hidden elements are always hidden in all browsers */
+.hidden {
+  display: none !important;
+}
+
+/* Ensure all clickable buttons have pointer cursor */
+button, .slot-btn, [role="button"], input[type="submit"], input[type="button"] {
+  cursor: pointer !important;
+}
+
 /* Smooth transitions on all interactive elements */
 a, button, input, select, textarea {
   transition: all 0.15s ease;
@@ -10,11 +20,18 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-/* Slot button selected state */
+/* Slot button interactive & selected state */
+.slot-btn {
+  cursor: pointer !important;
+  user-select: none;
+}
+.slot-btn:hover {
+  transform: translateY(-1px);
+}
 .slot-btn.selected {
-  border-color: #2563eb;
-  background-color: #eff6ff;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  border-color: #2563eb !important;
+  background-color: #eff6ff !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3) !important;
 }
 
 /* Smooth page load */

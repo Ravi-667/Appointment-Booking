@@ -7,8 +7,8 @@
     <!-- Step indicators -->
     <div class="flex items-center mb-8">
       <div class="step-indicator active flex items-center" id="step-ind-1">
-        <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold">1</div>
-        <span class="ml-2 text-sm font-medium text-primary-700">Date & Time</span>
+        <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">1</div>
+        <span class="ml-2 text-sm font-semibold text-primary-700">Date & Time</span>
       </div>
       <div class="flex-1 h-0.5 bg-gray-200 mx-3"></div>
       <div class="step-indicator flex items-center" id="step-ind-2">
@@ -26,41 +26,66 @@
     <div id="step-1">
       <label class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
       <input type="date" id="booking-date"
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4 cursor-pointer"
         value="<%= new Date().toISOString().split('T')[0] %>"
         min="<%= new Date().toISOString().split('T')[0] %>">
+      
       <div id="slots-container" class="mt-2">
         <p class="text-gray-400 text-sm">Pick a date to see available time slots.</p>
+      </div>
+
+      <!-- Action bar when a slot is chosen -->
+      <div id="slot-action-bar" class="hidden mt-6 pt-4 border-t border-gray-100 flex items-center justify-between" style="display: none;">
+        <div>
+          <span class="text-xs text-gray-500 block font-medium">Selected Slot</span>
+          <span id="selected-slot-summary" class="text-sm font-semibold text-primary-700">—</span>
+        </div>
+        <button type="button" onclick="goToStep(2)"
+          class="px-5 py-2.5 bg-primary-600 text-white font-medium text-sm rounded-lg hover:bg-primary-700 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+          <span>Continue</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
       </div>
     </div>
 
     <!-- Step 2: Customer Info -->
-    <div id="step-2" class="hidden">
+    <div id="step-2" class="hidden" style="display: none;">
+      <!-- Selected slot banner -->
+      <div class="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-lg flex items-center justify-between text-sm">
+        <div>
+          <span class="text-xs text-primary-600 font-semibold block uppercase">Appointment Time</span>
+          <span id="step-2-slot-preview" class="font-medium text-primary-900"></span>
+        </div>
+        <button type="button" onclick="goToStep(1)" class="text-xs text-primary-700 underline font-medium hover:text-primary-800 cursor-pointer">
+          Change Slot
+        </button>
+      </div>
+
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-          <input type="text" id="cust-name" required
+          <input type="text" id="cust-name" required placeholder="John Doe"
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-          <input type="email" id="cust-email" required
+          <input type="email" id="cust-email" required placeholder="john@example.com"
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-          <input type="tel" id="cust-phone"
+          <input type="tel" id="cust-phone" placeholder="+91 9876543210"
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-          <textarea id="cust-notes" rows="3"
+          <textarea id="cust-notes" rows="3" placeholder="Any specific requirements or questions..."
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
         </div>
-        <div class="flex gap-3">
-          <button onclick="goToStep(1)" class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Back</button>
-          <button onclick="submitBooking()" id="btn-book"
-            class="flex-1 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition">
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="goToStep(1)" class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition cursor-pointer font-medium">Back</button>
+          <button type="button" onclick="submitBooking()" id="btn-book"
+            class="flex-1 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition shadow-sm cursor-pointer">
             Confirm Booking
           </button>
         </div>
@@ -68,7 +93,7 @@
     </div>
 
     <!-- Step 3: Confirmation -->
-    <div id="step-3" class="hidden text-center py-8">
+    <div id="step-3" class="hidden text-center py-8" style="display: none;">
       <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
       </div>
@@ -88,21 +113,29 @@
   let holdData = null;
 
   const dateInput = document.getElementById('booking-date');
-  dateInput.addEventListener('change', loadSlots);
-  dateInput.addEventListener('input', loadSlots);
-
-  // Set default date to today or tomorrow if not set, and load slots immediately
-  if (!dateInput.value) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
+  if (dateInput) {
+    dateInput.addEventListener('change', loadSlots);
+    dateInput.addEventListener('input', loadSlots);
+    if (!dateInput.value) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
   }
+
+  // Initial load
   loadSlots();
 
   async function loadSlots() {
-    const date = dateInput.value;
+    const date = dateInput ? dateInput.value : '';
     if (!date) return;
     const container = document.getElementById('slots-container');
-    container.innerHTML = '<p class="text-gray-400 text-sm">Loading available slots...</p>';
+    const actionBar = document.getElementById('slot-action-bar');
+    if (actionBar) {
+      actionBar.classList.add('hidden');
+      actionBar.style.display = 'none';
+    }
+    selectedSlot = null;
+
+    container.innerHTML = '<p class="text-gray-400 text-sm py-2">Loading available slots...</p>';
     try {
       const res = await fetch('/api/v1/availability?tenantId=' + encodeURIComponent(TENANT_ID) + '&serviceId=' + encodeURIComponent(SERVICE_ID) + '&date=' + encodeURIComponent(date));
       const data = await res.json();
@@ -117,32 +150,77 @@
         const t = new Date(s.startTime);
         const time = t.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
         const staffName = s.staffName || 'Available Specialist';
-        html += '<button type="button" onclick="selectSlot(this, \'' + s.startTime + '\', \'' + (s.staffId || '') + '\')" ' +
-          'class="slot-btn p-3 border border-gray-200 rounded-xl text-left hover:border-primary-500 hover:bg-primary-50/60 transition shadow-sm bg-white focus:outline-none">' +
-          '<div class="font-bold text-gray-900 text-sm">' + time + '</div>' +
-          '<div class="text-xs text-gray-500 mt-0.5">' + staffName + '</div>' +
+        html += '<button type="button" data-start="' + s.startTime + '" data-staff-id="' + (s.staffId || '') + '" data-time-str="' + time + '" data-staff-name="' + staffName + '" ' +
+          'class="slot-btn p-3 border border-gray-200 rounded-xl text-left hover:border-primary-500 hover:bg-primary-50/60 transition shadow-sm bg-white focus:outline-none cursor-pointer flex flex-col justify-between">' +
+          '<div class="flex items-center justify-between w-full">' +
+            '<span class="font-bold text-gray-900 text-sm">' + time + '</span>' +
+            '<span class="slot-check hidden text-primary-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></span>' +
+          '</div>' +
+          '<div class="text-xs text-gray-500 mt-1">' + staffName + '</div>' +
           '</button>';
       });
       html += '</div>';
       container.innerHTML = html;
+
+      // Attach click handlers to all buttons
+      container.querySelectorAll('.slot-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          selectSlot(this);
+        });
+      });
     } catch (err) {
-      container.innerHTML = '<p class="text-red-500 text-sm">Error loading slots. Please try again.</p>';
+      container.innerHTML = '<p class="text-red-500 text-sm py-2">Error loading slots. Please try again.</p>';
     }
   }
 
-  function selectSlot(el, startTime, staffId) {
+  function selectSlot(btn) {
+    const startTime = btn.getAttribute('data-start');
+    const staffId = btn.getAttribute('data-staff-id');
+    const timeStr = btn.getAttribute('data-time-str');
+    const staffName = btn.getAttribute('data-staff-name');
+
+    // Deselect all buttons
     document.querySelectorAll('.slot-btn').forEach(b => {
-      b.classList.remove('border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-300');
+      b.classList.remove('selected', 'border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-300');
+      const check = b.querySelector('.slot-check');
+      if (check) check.classList.add('hidden');
     });
-    el.classList.add('border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-300');
-    selectedSlot = { startTime, staffId };
-    setTimeout(() => goToStep(2), 250);
+
+    // Mark current button as selected
+    btn.classList.add('selected', 'border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-300');
+    const check = btn.querySelector('.slot-check');
+    if (check) check.classList.remove('hidden');
+
+    selectedSlot = { startTime, staffId, timeStr, staffName };
+
+    // Show summary bar
+    const bar = document.getElementById('slot-action-bar');
+    const summary = document.getElementById('selected-slot-summary');
+    if (bar && summary) {
+      summary.textContent = timeStr + ' with ' + staffName;
+      bar.classList.remove('hidden');
+      bar.style.display = 'flex';
+    }
+
+    // Auto-advance after 300ms
+    setTimeout(() => {
+      goToStep(2);
+    }, 300);
   }
 
   function goToStep(n) {
     [1, 2, 3].forEach(i => {
       const stepEl = document.getElementById('step-' + i);
-      if (stepEl) stepEl.classList.toggle('hidden', i !== n);
+      if (stepEl) {
+        if (i === n) {
+          stepEl.classList.remove('hidden');
+          stepEl.style.display = 'block';
+        } else {
+          stepEl.classList.add('hidden');
+          stepEl.style.display = 'none';
+        }
+      }
       const ind = document.getElementById('step-ind-' + i);
       if (ind) {
         const circle = ind.querySelector('div');
@@ -156,13 +234,30 @@
         }
       }
     });
+
+    // If moving to step 2, update slot preview banner
+    if (n === 2 && selectedSlot) {
+      const preview = document.getElementById('step-2-slot-preview');
+      if (preview) {
+        preview.textContent = selectedSlot.timeStr + ' with ' + selectedSlot.staffName;
+      }
+    }
+
+    // Scroll to top of card smoothly
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function submitBooking() {
-    if (!selectedSlot) { alert('Please select a time slot first.'); return goToStep(1); }
+    if (!selectedSlot) {
+      alert('Please select a time slot first.');
+      return goToStep(1);
+    }
     const name = document.getElementById('cust-name').value.trim();
     const email = document.getElementById('cust-email').value.trim();
-    if (!name || !email) { alert('Name and email are required.'); return; }
+    if (!name || !email) {
+      alert('Full Name and Email are required.');
+      return;
+    }
     const btn = document.getElementById('btn-book');
     btn.disabled = true;
     btn.textContent = 'Securing Booking...';
@@ -222,4 +317,10 @@
       btn.textContent = 'Confirm Booking';
     }
   }
+
+  // Expose functions globally on window
+  window.loadSlots = loadSlots;
+  window.selectSlot = selectSlot;
+  window.goToStep = goToStep;
+  window.submitBooking = submitBooking;
 </script>
