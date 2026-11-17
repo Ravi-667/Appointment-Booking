@@ -57,12 +57,17 @@ app.use(session({
 app.use(flash());
 
 // ─── Template locals (available in all views) ───────────────────────────────
+const dateTimeUtils = require("./utils/datetime.utils");
 app.use((req, res, next) => {
   res.locals.user = req.session?.user || null;
   res.locals.messages = {
     success: req.flash("success")[0],
     error: req.flash("error")[0],
   };
+  res.locals.formatTime12 = dateTimeUtils.formatTime12;
+  res.locals.formatDate12 = dateTimeUtils.formatDate12;
+  res.locals.formatDateTime12 = dateTimeUtils.formatDateTime12;
+  res.locals.formatTimeRange12 = dateTimeUtils.formatTimeRange12;
   next();
 });
 

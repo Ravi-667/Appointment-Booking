@@ -63,6 +63,9 @@
             <input type="time" name="hours[<%= h.dayOfWeek %>][openTime]" value="<%= h.openTime %>" class="px-2 py-1 border border-gray-300 rounded text-sm">
             <span class="text-gray-400">to</span>
             <input type="time" name="hours[<%= h.dayOfWeek %>][closeTime]" value="<%= h.closeTime %>" class="px-2 py-1 border border-gray-300 rounded text-sm">
+            <% if (h.isOpen) { %>
+              <span class="text-xs text-primary-700 bg-primary-50 px-2 py-0.5 rounded font-medium ml-2"><%= formatTimeRange12(h.openTime, h.closeTime) %></span>
+            <% } %>
           </div>
           <% }) } %>
         </div>

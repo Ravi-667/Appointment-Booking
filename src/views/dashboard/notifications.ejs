@@ -24,7 +24,7 @@
               <td class="px-4 py-3">
                 <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-<%= log.status === 'SENT' ? 'green' : log.status === 'FAILED' ? 'red' : 'yellow' %>-100 text-<%= log.status === 'SENT' ? 'green' : log.status === 'FAILED' ? 'red' : 'yellow' %>-800"><%= log.status %></span>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-500"><%= log.sentAt ? new Date(log.sentAt).toLocaleString('en-IN') : '—' %></td>
+              <td class="px-4 py-3 text-sm text-gray-500"><%= log.sentAt ? formatDateTime12(log.sentAt) : '—' %></td>
               <td class="px-4 py-3 text-sm text-red-500"><%= log.errorMessage || '' %></td>
             </tr>
             <% }) %>

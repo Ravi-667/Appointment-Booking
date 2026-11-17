@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const prisma = require("../utils/prisma.client");
+const { formatDateTime12 } = require("../utils/datetime.utils");
 
 class NotificationsService {
   constructor() {
@@ -25,7 +26,7 @@ class NotificationsService {
         <p>Your appointment has been confirmed:</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0">
           <tr><td style="padding:8px;color:#6b7280">Service</td><td style="padding:8px;font-weight:600">${booking.service.name}</td></tr>
-          <tr style="background:#f9fafb"><td style="padding:8px;color:#6b7280">Date & Time</td><td style="padding:8px;font-weight:600">${new Date(booking.startTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</td></tr>
+          <tr style="background:#f9fafb"><td style="padding:8px;color:#6b7280">Date & Time</td><td style="padding:8px;font-weight:600">${formatDateTime12(booking.startTime)}</td></tr>
           ${booking.staff ? `<tr><td style="padding:8px;color:#6b7280">Staff</td><td style="padding:8px;font-weight:600">${booking.staff.name}</td></tr>` : ""}
           <tr style="background:#f9fafb"><td style="padding:8px;color:#6b7280">Amount Paid</td><td style="padding:8px;font-weight:600">₹${booking.depositAmount}</td></tr>
         </table>
@@ -52,7 +53,7 @@ class NotificationsService {
         <h2>Appointment Reminder</h2>
         <p>Dear ${booking.customerName},</p>
         <p>Your <strong>${booking.service.name}</strong> appointment is in ${hoursAhead} hour(s).</p>
-        <p><strong>Date & Time:</strong> ${new Date(booking.startTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
+        <p><strong>Date & Time:</strong> ${formatDateTime12(booking.startTime)}</p>
       </div>
     `;
 
@@ -74,7 +75,7 @@ class NotificationsService {
       <div style="font-family:sans-serif;max-width:500px;margin:auto;padding:24px">
         <h2>Booking Cancelled</h2>
         <p>Dear ${booking.customerName},</p>
-        <p>Your <strong>${booking.service.name}</strong> appointment on ${new Date(booking.startTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} has been cancelled.</p>
+        <p>Your <strong>${booking.service.name}</strong> appointment on ${formatDateTime12(booking.startTime)} has been cancelled.</p>
         ${booking.cancellationReason ? `<p><strong>Reason:</strong> ${booking.cancellationReason}</p>` : ""}
       </div>
     `;

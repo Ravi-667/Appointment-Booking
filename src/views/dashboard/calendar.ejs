@@ -17,7 +17,7 @@
         <% bookings.forEach(b => { %>
         <a href="/dashboard/bookings/<%= b.id %>" class="flex items-center p-4 border border-gray-200 rounded-xl hover:border-primary-300 hover:shadow-sm transition">
           <div class="w-20 text-center">
-            <p class="text-lg font-bold text-primary-600"><%= new Date(b.startTime).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true }) %></p>
+            <p class="text-base font-bold text-primary-600"><%= formatTime12(b.startTime) %></p>
             <p class="text-xs text-gray-400"><%= b.service ? b.service.durationMinutes + ' min' : '' %></p>
           </div>
           <div class="ml-4 flex-1 border-l border-gray-200 pl-4">

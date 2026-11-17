@@ -17,7 +17,7 @@
       <div><p class="text-sm text-gray-500">Phone</p><p class="font-medium text-gray-900"><%= booking.customerPhone || '—' %></p></div>
       <div><p class="text-sm text-gray-500">Service</p><p class="font-medium text-gray-900"><%= booking.service ? booking.service.name : '—' %></p></div>
       <div><p class="text-sm text-gray-500">Staff</p><p class="font-medium text-gray-900"><%= booking.staff ? booking.staff.name : '—' %></p></div>
-      <div><p class="text-sm text-gray-500">Date & Time</p><p class="font-medium text-gray-900"><%= new Date(booking.startTime).toLocaleString('en-IN', { timeZone:'Asia/Kolkata', dateStyle:'long', timeStyle:'short' }) %></p></div>
+      <div><p class="text-sm text-gray-500">Date & Time</p><p class="font-medium text-gray-900"><%= formatDateTime12(booking.startTime) %></p></div>
       <div><p class="text-sm text-gray-500">Price</p><p class="font-medium text-gray-900">₹<%= Number(booking.price).toLocaleString() %></p></div>
       <div><p class="text-sm text-gray-500">Deposit</p><p class="font-medium text-gray-900">₹<%= Number(booking.depositAmount).toLocaleString() %></p></div>
       <% if (booking.customerNotes) { %>

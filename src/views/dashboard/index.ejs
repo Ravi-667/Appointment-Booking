@@ -57,8 +57,8 @@
             </div>
             <div class="flex items-center space-x-3 text-right text-sm">
               <div>
-                <p class="font-medium text-gray-900"><%= new Date(b.startTime).toLocaleDateString('en-IN', { month:'short', day:'numeric' }) %></p>
-                <p class="text-gray-500"><%= new Date(b.startTime).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true }) %></p>
+                <p class="font-medium text-gray-900"><%= formatDate12(b.startTime) %></p>
+                <p class="text-gray-500 font-medium text-xs"><%= formatTime12(b.startTime) %></p>
               </div>
               <span class="text-primary-600 text-xs font-semibold px-2.5 py-1 bg-primary-50 rounded-lg group-hover:bg-primary-100 transition">View &rarr;</span>
             </div>

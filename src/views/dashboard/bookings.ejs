@@ -39,8 +39,8 @@
               </td>
               <td class="px-4 py-3 text-sm text-gray-700"><%= b.service ? b.service.name : '-' %></td>
               <td class="px-4 py-3 text-sm text-gray-700">
-                <%= new Date(b.startTime).toLocaleDateString('en-IN', { month:'short', day:'numeric', year:'numeric' }) %><br>
-                <span class="text-gray-500"><%= new Date(b.startTime).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true }) %></span>
+                <%= formatDate12(b.startTime) %><br>
+                <span class="text-gray-500 font-medium text-xs"><%= formatTime12(b.startTime) %></span>
               </td>
               <td class="px-4 py-3 text-sm text-gray-700"><%= b.staff ? b.staff.name : '—' %></td>
               <td class="px-4 py-3">
