@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser");
 const expressLayouts = require("express-ejs-layouts");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const passport = require("./utils/passport");
 const { globalLimiter } = require("./middlewares/rate-limit.middleware");
 const { requestLogger } = require("./middlewares/logger.middleware");
 
@@ -22,8 +23,9 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
       connectSrc: ["'self'", "ws:", "wss:"],
     },
   },
@@ -41,7 +43,6 @@ app.set("layout extractScripts", true);
 app.use(express.static(path.join(__dirname, "public")));
 
 // ─── Body parsing ───────────────────────────────────────────────────────────
-// Raw body for Razorpay webhook BEFORE json middleware
 app.use("/api/v1/payments/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -52,9 +53,13 @@ app.use(session({
   secret: process.env.JWT_ACCESS_SECRET || "dev-session-secret-replace-me",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 }, // 24h
+  cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 },
 }));
 app.use(flash());
+
+// ─── Passport (Google OAuth) ────────────────────────────────────────────────
+app.use(passport.initialize());
+app.use(passport.session());
 
 // ─── Template locals (available in all views) ───────────────────────────────
 const dateTimeUtils = require("./utils/datetime.utils");
@@ -105,24 +110,21 @@ app.use("/", require("./routes/views.routes"));
 
 // ─── 404 handler ────────────────────────────────────────────────────────────
 app.use((req, res) => {
-  // For API requests return JSON, for browser requests render a page
   if (req.url.startsWith("/api/")) {
     return res.status(404).json({ statusCode: 404, message: `Route ${req.url} not found` });
   }
   res.status(404).render("home", { title: "Not Found" });
 });
 
-// ─── Global error handler — MUST be last ────────────────────────────────────
+// ─── Global error handler ────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal server error";
   if (status >= 500) console.error(`[ERROR] ${req.method} ${req.url}:`, err);
 
-  // For API requests return JSON
   if (req.url.startsWith("/api/")) {
     return res.status(status).json({ statusCode: status, message, path: req.url, timestamp: new Date().toISOString() });
   }
-  // For view routes, flash error and redirect back
   req.flash("error", message);
   res.redirect("back");
 });

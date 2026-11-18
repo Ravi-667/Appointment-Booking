@@ -6,6 +6,8 @@ const staffService = require("../services/staff.service");
 const bookingsService = require("../services/bookings.service");
 const dashboardService = require("../services/dashboard.service");
 const prisma = require("../utils/prisma.client");
+const passport = require("../utils/passport");
+const { signAccessToken, signRefreshToken } = require("../utils/jwt.utils");
 
 // ─── Auth helpers for view routes ───────────────────────────────────────────
 
@@ -23,6 +25,17 @@ function requireTenant(req, res, next) {
     return res.redirect("/setup");
   }
   next();
+}
+
+// Helper: set session from a user object
+async function setUserSession(req, user) {
+  const payload = { sub: user.id, email: user.email, role: user.role, tenantId: user.tenantId };
+  req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role, avatarUrl: user.avatarUrl };
+  req.session.accessToken = signAccessToken(payload);
+  req.session.refreshToken = signRefreshToken(payload);
+  const fullUser = await prisma.user.findUnique({ where: { id: user.id }, select: { tenantId: true } });
+  req.session.user.tenantId = fullUser?.tenantId || null;
+  return fullUser;
 }
 
 // ─── PUBLIC PAGES ───────────────────────────────────────────────────────────
@@ -46,26 +59,15 @@ router.get("/", async (req, res) => {
 
 router.get("/login", (req, res) => {
   if (req.session && req.session.user) return res.redirect("/dashboard");
-  res.render("auth/login", { title: "Login" });
+  res.render("auth/login", { title: "Sign In", fullPage: true });
 });
 
 router.post("/login", async (req, res) => {
   try {
     const result = await authService.login(req.body.email, req.body.password);
-    // Store user + tokens in session
-    req.session.user = result.user;
-    req.session.accessToken = result.accessToken;
-    req.session.refreshToken = result.refreshToken;
-    // Check if user has a tenant
-    const fullUser = await prisma.user.findUnique({ where: { id: result.user.id }, select: { tenantId: true } });
-    req.session.user.tenantId = fullUser?.tenantId || null;
-    if (fullUser?.tenantId) {
-      return res.redirect("/dashboard");
-    }
-    // Business owner without tenant → setup
-    if (result.user.role === "BUSINESS_OWNER") {
-      return res.redirect("/setup");
-    }
+    const fullUser = await setUserSession(req, result.user);
+    if (fullUser?.tenantId) return res.redirect("/dashboard");
+    if (result.user.role === "BUSINESS_OWNER") return res.redirect("/setup");
     res.redirect("/");
   } catch (err) {
     req.flash("error", err.message || "Invalid credentials");
@@ -75,7 +77,7 @@ router.post("/login", async (req, res) => {
 
 router.get("/register", (req, res) => {
   if (req.session && req.session.user) return res.redirect("/dashboard");
-  res.render("auth/register", { title: "Register" });
+  res.render("auth/register", { title: "Sign Up", fullPage: true });
 });
 
 router.post("/register", async (req, res) => {
@@ -109,6 +111,34 @@ router.get("/logout", (req, res) => {
     res.redirect("/");
   });
 });
+
+// ─── GOOGLE OAUTH ────────────────────────────────────────────────────────────
+
+router.get("/auth/google",
+  (req, res, next) => {
+    // Store redirect destination for after login
+    req.session.oauthReturn = req.query.return || "/";
+    next();
+  },
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+router.get("/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login", failureFlash: true }),
+  async (req, res) => {
+    try {
+      const user = req.user;
+      const fullUser = await setUserSession(req, user);
+      req.flash("success", `Welcome, ${user.name.split(" ")[0]}! 🎉`);
+      if (fullUser?.tenantId) return res.redirect("/dashboard");
+      if (user.role === "BUSINESS_OWNER") return res.redirect("/setup");
+      res.redirect(req.session.oauthReturn || "/");
+    } catch (err) {
+      req.flash("error", "Google login failed. Please try again.");
+      res.redirect("/login");
+    }
+  }
+);
 
 // ─── BUSINESS SETUP ─────────────────────────────────────────────────────────
 
