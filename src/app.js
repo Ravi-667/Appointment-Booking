@@ -15,6 +15,13 @@ const { requestLogger } = require("./middlewares/logger.middleware");
 
 const app = express();
 
+// ─── Trust Render / Heroku reverse proxy ────────────────────────────────────
+// Required so that session cookies with `secure: true` work correctly on
+// Render.com (and any platform that terminates TLS at the load-balancer).
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 app.use(requestLogger);
 
 // ─── Security ───────────────────────────────────────────────────────────────
