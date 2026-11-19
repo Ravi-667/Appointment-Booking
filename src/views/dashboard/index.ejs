@@ -16,38 +16,16 @@
         </p>
       </div>
 
-      <!-- Period + Action buttons -->
-      <div class="flex flex-wrap items-center gap-2.5">
-        <!-- Copy Booking Link Button -->
-        <button type="button" id="btn-copy-header-link" onclick="copyHeaderLink(this)"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 active:bg-gray-50 text-gray-700 text-xs sm:text-sm font-medium rounded-lg shadow-sm transition">
-          <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-          </svg>
-          <span>Copy Booking Link</span>
-        </button>
-
-        <!-- View Live Page Button -->
-        <a href="/business/<%= tenant.slug %>" target="_blank"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 border border-primary-200 hover:bg-primary-100 text-primary-700 text-xs sm:text-sm font-medium rounded-lg transition"
-          title="Open your public booking page in a new tab">
-          <span>View Live Page</span>
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-          </svg>
-        </a>
-
-        <!-- Period selector -->
-        <div class="flex items-center gap-1.5 pl-1 sm:pl-2 border-l border-gray-200">
-          <label class="text-xs sm:text-sm text-gray-500 font-medium">Period:</label>
-          <select id="period-select" onchange="window.location.href='/dashboard?period='+this.value"
-            class="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none cursor-pointer">
-            <option value="1d" <%= stats.period === '1d' ? 'selected' : '' %>>Today</option>
-            <option value="7d" <%= stats.period === '7d' ? 'selected' : '' %>>7 Days</option>
-            <option value="30d" <%= stats.period === '30d' ? 'selected' : '' %>>30 Days</option>
-            <option value="90d" <%= stats.period === '90d' ? 'selected' : '' %>>90 Days</option>
-          </select>
-        </div>
+      <!-- Period selector -->
+      <div class="flex items-center gap-2">
+        <label class="text-xs sm:text-sm text-gray-500 font-medium">Period:</label>
+        <select id="period-select" onchange="window.location.href='/dashboard?period='+this.value"
+          class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none cursor-pointer font-medium text-gray-700 shadow-sm">
+          <option value="1d" <%= stats.period === '1d' ? 'selected' : '' %>>Today</option>
+          <option value="7d" <%= stats.period === '7d' ? 'selected' : '' %>>7 Days</option>
+          <option value="30d" <%= stats.period === '30d' ? 'selected' : '' %>>30 Days</option>
+          <option value="90d" <%= stats.period === '90d' ? 'selected' : '' %>>90 Days</option>
+        </select>
       </div>
     </div>
   </div>
@@ -257,28 +235,6 @@
           </a>
         </div>
 
-        <!-- Settings shortcut card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <h3 class="text-sm font-semibold text-gray-700 mb-3">Manage Business</h3>
-          <div class="space-y-1">
-            <a href="/dashboard/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition group">
-              <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              <span class="text-sm text-gray-600 group-hover:text-gray-900">Business Settings</span>
-              <svg class="w-3.5 h-3.5 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-            <a href="/dashboard/notifications" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition group">
-              <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-              <span class="text-sm text-gray-600 group-hover:text-gray-900">Notifications</span>
-              <svg class="w-3.5 h-3.5 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-            <a href="/profile" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition group">
-              <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-              <span class="text-sm text-gray-600 group-hover:text-gray-900">My Profile</span>
-              <svg class="w-3.5 h-3.5 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-          </div>
-        </div>
-
       </div>
     </div><!-- /main grid -->
   </div><!-- /container -->
@@ -291,33 +247,17 @@ function getFullBookingUrl() {
   return window.location.origin + '/business/<%= tenant.slug %>';
 }
 
-function copyHeaderLink(btn) {
-  var url = getFullBookingUrl();
-  navigator.clipboard.writeText(url).then(function() {
-    var origHtml = btn.innerHTML;
-    btn.innerHTML = '<svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span class="text-emerald-700 font-semibold">Copied!</span>';
-    btn.classList.add('border-emerald-300', 'bg-emerald-50');
-    setTimeout(function() {
-      btn.innerHTML = origHtml;
-      btn.classList.remove('border-emerald-300', 'bg-emerald-50');
-    }, 2000);
-  }).catch(function() {
-    var input = document.getElementById('pub-link');
-    if (input) { input.select(); document.execCommand('copy'); }
-  });
-}
-
 function copySidebarLink(btn) {
   var url = getFullBookingUrl();
   navigator.clipboard.writeText(url).then(function() {
     var orig = btn.innerHTML;
     btn.innerHTML = '✓ Copied!';
-    btn.classList.remove('bg-primary-600');
-    btn.classList.add('bg-emerald-600');
+    btn.classList.remove('bg-primary-600', 'hover:bg-primary-700');
+    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
     setTimeout(function() {
       btn.innerHTML = orig;
-      btn.classList.remove('bg-emerald-600');
-      btn.classList.add('bg-primary-600');
+      btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+      btn.classList.add('bg-primary-600', 'hover:bg-primary-700');
     }, 2000);
   }).catch(function() {
     var input = document.getElementById('pub-link');
