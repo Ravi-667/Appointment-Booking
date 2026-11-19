@@ -7,6 +7,9 @@
 [![Redis](https://img.shields.io/badge/Redis-7.x-red.svg)](https://redis.io/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.x-38bdf8.svg)](https://tailwindcss.com/)
 [![Tests](https://img.shields.io/badge/Jest%20Tests-31%20Passed-brightgreen.svg)]()
+[![Live on Render](https://img.shields.io/badge/Live%20Demo-Render.com-46E3B7.svg)](https://appointment-booking-3dz0.onrender.com)
+
+> 🚀 **Live Demo:** [https://appointment-booking-3dz0.onrender.com](https://appointment-booking-3dz0.onrender.com)
 
 A complete, production-grade **Multi-Tenant Appointment Booking SaaS Platform** designed for salons, dental clinics, physiotherapy centers, and professional service businesses.
 
