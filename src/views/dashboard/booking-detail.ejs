@@ -18,8 +18,8 @@
       <div><p class="text-sm text-gray-500">Service</p><p class="font-medium text-gray-900"><%= booking.service ? booking.service.name : '—' %></p></div>
       <div><p class="text-sm text-gray-500">Staff</p><p class="font-medium text-gray-900"><%= booking.staff ? booking.staff.name : '—' %></p></div>
       <div><p class="text-sm text-gray-500">Date & Time</p><p class="font-medium text-gray-900"><%= formatDateTime12(booking.startTime) %></p></div>
-      <div><p class="text-sm text-gray-500">Price</p><p class="font-medium text-gray-900">₹<%= Number(booking.price).toLocaleString() %></p></div>
-      <div><p class="text-sm text-gray-500">Deposit</p><p class="font-medium text-gray-900">₹<%= Number(booking.depositAmount).toLocaleString() %></p></div>
+      <div><p class="text-sm text-gray-500">Total Price</p><p class="font-medium text-gray-900">₹<%= Number(booking.price).toLocaleString() %></p></div>
+      <div><p class="text-sm text-gray-500">Payment Mode</p><p class="font-semibold text-emerald-600">Full Payment (<%= booking.status === 'CONFIRMED' ? 'Paid' : booking.status %>)</p></div>
       <% if (booking.customerNotes) { %>
       <div class="sm:col-span-2"><p class="text-sm text-gray-500">Notes</p><p class="font-medium text-gray-900"><%= booking.customerNotes %></p></div>
       <% } %>
@@ -35,7 +35,7 @@
         <% booking.payments.forEach(p => { %>
         <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg text-sm">
           <div>
-            <span class="font-medium"><%= p.type %></span>
+            <span class="font-medium text-gray-900"><%= p.type === 'FULL_PAYMENT' || p.type === 'DEPOSIT' ? 'Full Payment' : p.type %></span>
             <span class="text-gray-500 ml-2"><%= p.razorpayPaymentId || p.razorpayOrderId || '—' %></span>
           </div>
           <div class="flex items-center space-x-3">

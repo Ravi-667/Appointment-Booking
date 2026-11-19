@@ -11,8 +11,8 @@ const holdSchema = z.object({
   serviceId: z.string().uuid(),
   staffId: z.string().uuid().optional(),
   startTime: z.string().datetime(),
-  customerName: z.string().min(1),
-  customerEmail: z.string().email(),
+  customerName: z.string().optional(),
+  customerEmail: z.string().email().optional(),
   customerPhone: z.string().optional(),
 });
 
@@ -27,6 +27,13 @@ const createSchema = z.object({
 
 router.post("/hold", bookingLimiter, validate(holdSchema), async (req, res, next) => {
   try { res.status(201).json(await bookingsService.holdSlot(req.body)); } catch (e) { next(e); }
+});
+
+router.post("/hold/release", async (req, res, next) => {
+  try {
+    const { holdId, sessionToken } = req.body;
+    res.json(await bookingsService.releaseHold(holdId, sessionToken));
+  } catch (e) { next(e); }
 });
 
 router.post("/", validate(createSchema), async (req, res, next) => {

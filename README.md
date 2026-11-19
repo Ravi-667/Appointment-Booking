@@ -29,9 +29,15 @@ Built with **pure Node.js + Express + Prisma ORM + PostgreSQL (Neon) + Redis + E
 - Unified **12-Hour AM/PM schedule formatting** (`09:00 AM – 07:00 PM`) across public views, dashboard, emails, and SMS.
 - Timezone-aware scheduling configured for `Asia/Kolkata` (customizable per tenant).
 
-### 🔒 Race-Condition Proof (Atomic Slot Locking)
+### 🔒 Race-Condition Proof & Hold Window
 - Powered by Redis `SET key val EX 600 NX` atomic locks.
-- Holds time slots for 10 minutes during customer checkout to prevent concurrent double-booking.
+- Holds time slots for 10 minutes during customer checkout with a live countdown timer.
+- Automatic slot release on hold expiration, cancellation, or failure to prevent double-booking.
+
+### 💳 100% Upfront Online Payments (Razorpay)
+- Full upfront payment model across all services (no partial deposits).
+- Razorpay Checkout integration with instant client-side HMAC SHA-256 verification and dual-layer webhook confirmation.
+- Built-in sandbox/test mode simulation for testing without active production keys.
 
 ### 🖥️ Complete UI Suite (EJS + Tailwind CSS)
 - **Public Customer Portal**:
@@ -43,7 +49,7 @@ Built with **pure Node.js + Express + Prisma ORM + PostgreSQL (Neon) + Redis + E
   - Real-time revenue metrics, cancellation rates, and upcoming appointment cards.
   - Interactive table with full-row click redirects and appointment details (`/dashboard/bookings/:id`).
   - Daily & weekly calendar views (`/dashboard/calendar`).
-  - Service catalog management with pricing and deposit controls (`/dashboard/services`).
+  - Service catalog management with pricing controls (`/dashboard/services`).
   - Staff management and service assignment mapping (`/dashboard/staff`).
   - Business hours and holiday scheduler (`/dashboard/settings`).
   - Notification audit logs (`/dashboard/notifications`).

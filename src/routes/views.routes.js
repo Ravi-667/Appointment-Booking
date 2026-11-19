@@ -244,7 +244,12 @@ router.get("/book/:slug", async (req, res, next) => {
       req.flash("error", "Service not found");
       return res.redirect("/business/" + req.params.slug);
     }
-    res.render("public/book", { title: "Book " + service.name, tenant, service });
+    res.render("public/book", {
+      title: "Book " + service.name,
+      tenant,
+      service,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
+    });
   } catch (err) {
     next(err);
   }
@@ -340,7 +345,7 @@ router.post("/dashboard/services", viewAuth, requireTenant, async (req, res) => 
       description: req.body.description || undefined,
       durationMinutes: parseInt(req.body.durationMinutes),
       price: parseFloat(req.body.price),
-      depositAmount: parseFloat(req.body.depositAmount || "0"),
+      depositAmount: parseFloat(req.body.price),
     };
     await servicesService.create(req.user.tenantId, data);
     req.flash("success", "Service created!");

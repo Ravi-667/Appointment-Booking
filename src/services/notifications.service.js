@@ -28,7 +28,7 @@ class NotificationsService {
           <tr><td style="padding:8px;color:#6b7280">Service</td><td style="padding:8px;font-weight:600">${booking.service.name}</td></tr>
           <tr style="background:#f9fafb"><td style="padding:8px;color:#6b7280">Date & Time</td><td style="padding:8px;font-weight:600">${formatDateTime12(booking.startTime)}</td></tr>
           ${booking.staff ? `<tr><td style="padding:8px;color:#6b7280">Staff</td><td style="padding:8px;font-weight:600">${booking.staff.name}</td></tr>` : ""}
-          <tr style="background:#f9fafb"><td style="padding:8px;color:#6b7280">Amount Paid</td><td style="padding:8px;font-weight:600">₹${booking.depositAmount}</td></tr>
+          <tr style="background:#f9fafb"><td style="padding:8px;color:#6b7280">Amount Paid (Full Payment)</td><td style="padding:8px;font-weight:600">₹${booking.price}</td></tr>
         </table>
         <p style="color:#6b7280;font-size:14px">Thank you for booking with us!</p>
       </div>

@@ -3,10 +3,8 @@ function makeError(msg, status) { const e = new Error(msg); e.status = status; r
 
 class ServicesService {
   async create(tenantId, data) {
-    if (data.depositAmount && Number(data.depositAmount) > Number(data.price)) {
-      throw makeError("Deposit amount cannot exceed service price", 400);
-    }
-    return prisma.service.create({ data: { ...data, tenantId }, include: { category: true } });
+    const depositAmount = data.depositAmount !== undefined ? data.depositAmount : data.price;
+    return prisma.service.create({ data: { ...data, depositAmount, tenantId }, include: { category: true } });
   }
 
   async findAll(tenantId, activeOnly = true) {

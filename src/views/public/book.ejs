@@ -1,35 +1,71 @@
+<!-- Razorpay Checkout SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <!-- Multi-step booking flow -->
 <div class="max-w-2xl mx-auto px-4 py-8">
-  <div class="bg-white rounded-2xl shadow-lg p-8">
-    <h1 class="text-2xl font-bold text-gray-900 mb-1">Book at <span class="text-primary-600"><%= tenant.name %></span></h1>
-    <p class="text-gray-500 mb-6"><%= service.name %> — <%= service.durationMinutes %> min — ₹<%= Number(service.price).toLocaleString() %></p>
+  <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-gray-100 gap-2">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Book at <span class="text-primary-600"><%= tenant.name %></span></h1>
+        <p class="text-sm text-gray-500 mt-0.5"><%= service.name %> &bull; <%= service.durationMinutes %> min &bull; <strong class="text-gray-900">₹<%= Number(service.price).toLocaleString() %> (Full Payment)</strong></p>
+      </div>
+      <div class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium border border-emerald-200 self-start sm:self-auto flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span>Instant Confirmation</span>
+      </div>
+    </div>
 
     <!-- Step indicators -->
     <div class="flex items-center mb-8">
       <div class="step-indicator active flex items-center" id="step-ind-1">
         <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">1</div>
-        <span class="ml-2 text-sm font-semibold text-primary-700">Date & Time</span>
+        <span class="ml-2 text-sm font-semibold text-primary-700">Select Slot</span>
       </div>
       <div class="flex-1 h-0.5 bg-gray-200 mx-3"></div>
       <div class="step-indicator flex items-center" id="step-ind-2">
         <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold">2</div>
-        <span class="ml-2 text-sm font-medium text-gray-500">Your Details</span>
+        <span class="ml-2 text-sm font-medium text-gray-500">Details & Review</span>
       </div>
       <div class="flex-1 h-0.5 bg-gray-200 mx-3"></div>
       <div class="step-indicator flex items-center" id="step-ind-3">
         <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold">3</div>
-        <span class="ml-2 text-sm font-medium text-gray-500">Confirm</span>
+        <span class="ml-2 text-sm font-medium text-gray-500">Payment & Confirm</span>
+      </div>
+    </div>
+
+    <!-- Hold Timer Banner (Visible on Steps 2 and 3) -->
+    <div id="hold-timer-card" class="hidden mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl flex items-center justify-between shadow-sm transition-all" style="display: none;">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+          <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-800">Slot Reserved</span>
+            <span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-200/70 text-amber-900 rounded-full">Hold Active</span>
+          </div>
+          <p class="text-xs text-amber-700 mt-0.5">Complete your payment before time expires to secure your appointment.</p>
+        </div>
+      </div>
+      <div class="text-right shrink-0 ml-3">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-800 block">Time Left</span>
+        <div id="hold-countdown" class="font-mono font-extrabold text-xl text-amber-900 bg-white px-3 py-1 rounded-lg border border-amber-200 shadow-inner">
+          10:00
+        </div>
       </div>
     </div>
 
     <!-- Step 1: Date & Slot -->
     <div id="step-1">
-      <label class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+      <div id="step-1-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" style="display: none;"></div>
+
+      <label class="block text-sm font-semibold text-gray-700 mb-2">1. Select Date</label>
       <input type="date" id="booking-date"
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4 cursor-pointer"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4 cursor-pointer font-medium text-gray-800 bg-gray-50 focus:bg-white"
         value="<%= new Date().toISOString().split('T')[0] %>"
         min="<%= new Date().toISOString().split('T')[0] %>">
       
+      <label class="block text-sm font-semibold text-gray-700 mb-2">2. Available Time Slots</label>
       <div id="slots-container" class="mt-2">
         <p class="text-gray-400 text-sm">Pick a date to see available time slots.</p>
       </div>
@@ -48,20 +84,42 @@
       </div>
     </div>
 
-    <!-- Step 2: Customer Info -->
+    <!-- Step 2: Customer Info & Order Summary -->
     <div id="step-2" class="hidden" style="display: none;">
-      <!-- Selected slot banner -->
-      <div class="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-lg flex items-center justify-between text-sm">
-        <div>
-          <span class="text-xs text-primary-600 font-semibold block uppercase">Appointment Time</span>
-          <span id="step-2-slot-preview" class="font-medium text-primary-900"></span>
+      <!-- Selected Slot & Order Summary Card -->
+      <div class="mb-5 p-4 bg-primary-50/70 border border-primary-200 rounded-xl space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold text-primary-600 uppercase tracking-wider block">Service</span>
+            <span class="font-semibold text-gray-900 text-base"><%= service.name %></span>
+          </div>
+          <button type="button" id="btn-change-slot" class="text-xs text-primary-700 hover:text-primary-800 underline font-semibold cursor-pointer">
+            Change Slot
+          </button>
         </div>
-        <button type="button" id="btn-change-slot" class="text-xs text-primary-700 underline font-medium hover:text-primary-800 cursor-pointer">
-          Change Slot
-        </button>
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-primary-100 text-sm">
+          <div>
+            <span class="text-xs text-gray-500 block">Appointment Time</span>
+            <span id="step-2-slot-preview" class="font-medium text-gray-900">—</span>
+          </div>
+          <div>
+            <span class="text-xs text-gray-500 block">Duration</span>
+            <span class="font-medium text-gray-900"><%= service.durationMinutes %> Minutes</span>
+          </div>
+        </div>
+        <div class="pt-2 border-t border-primary-100 flex items-center justify-between text-sm">
+          <div>
+            <span class="text-xs text-gray-500 block">Payment Mode</span>
+            <span class="text-xs font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded">Full Payment Upfront</span>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-gray-500 block">Amount to Pay</span>
+            <span class="font-bold text-xl text-primary-700">₹<%= Number(service.price).toLocaleString() %></span>
+          </div>
+        </div>
       </div>
 
-      <div id="step-2-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg"></div>
+      <div id="step-2-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" style="display: none;"></div>
 
       <form id="booking-form" class="space-y-4" onsubmit="return false;">
         <div>
@@ -70,40 +128,139 @@
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
           <input type="email" id="cust-email" required placeholder="john@example.com"
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+          <p class="text-[11px] text-gray-500 mt-1">We'll send booking confirmation and invoice to this email.</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-          <input type="tel" id="cust-phone" placeholder="+91 9876543210"
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Phone (optional)</label>
+          <input type="tel" id="cust-phone" placeholder="+91 98765 43210"
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+          <p class="text-[11px] text-gray-500 mt-1">Receive SMS appointment reminders 24 hours prior.</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-          <textarea id="cust-notes" rows="3" placeholder="Any specific requirements or questions..."
+          <label class="block text-sm font-medium text-gray-700 mb-1">Special Notes / Requests (optional)</label>
+          <textarea id="cust-notes" rows="2" placeholder="Any specific requirements or health notes..."
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
         </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" id="btn-back-step1" class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition cursor-pointer font-medium">Back</button>
+
+        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-600 flex items-center gap-2.5">
+          <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span>Secured by 256-bit Razorpay encryption. 100% full payment upfront required to confirm your slot.</span>
+        </div>
+
+        <div class="flex gap-3 pt-3">
+          <button type="button" id="btn-back-step1" class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition cursor-pointer font-medium">
+            Back
+          </button>
           <button type="button" id="btn-book"
-            class="flex-1 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 active:bg-primary-800 transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
-            <span>Confirm Booking</span>
+            class="flex-1 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 active:bg-primary-800 transition shadow-md cursor-pointer flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <span>Proceed to Pay ₹<%= Number(service.price).toLocaleString() %></span>
           </button>
         </div>
       </form>
     </div>
 
     <!-- Step 3: Confirmation -->
-    <div id="step-3" class="hidden text-center py-8" style="display: none;">
-      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    <div id="step-3" class="hidden py-4" style="display: none;">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+          <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900">Payment Successful & Confirmed!</h2>
+        <p class="text-gray-500 mt-1 text-sm">Your appointment has been booked and fully paid for.</p>
       </div>
-      <h2 class="text-xl font-bold text-gray-900">Booking Created!</h2>
-      <p class="text-gray-500 mt-2" id="confirm-msg">Your appointment has been booked.</p>
-      <div id="confirm-details" class="mt-4 p-4 bg-gray-50 rounded-lg text-left text-sm space-y-1"></div>
-      <a href="/business/<%= tenant.slug %>" class="mt-6 inline-block px-6 py-2.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition">Book Another</a>
+
+      <div id="confirm-card" class="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-6 text-sm space-y-3">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-start gap-2.5 mb-6">
+        <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>A confirmation receipt has been sent to your email. You can view or reschedule this booking anytime using the Tracking Link below.</span>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <a id="btn-view-booking" href="/lookup" class="flex-1 py-2.5 px-4 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg text-center hover:bg-gray-50 transition shadow-sm">
+          Track This Booking
+        </a>
+        <a href="/business/<%= tenant.slug %>" class="flex-1 py-2.5 px-4 bg-primary-600 text-white font-medium rounded-lg text-center hover:bg-primary-700 transition shadow-sm">
+          Book Another Service
+        </a>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Simulated Razorpay Modal (Used when placeholder / test keys are configured) -->
+<div id="simulated-payment-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" style="display: none;">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in border border-gray-100">
+    <div class="bg-gradient-to-r from-[#0c2340] to-[#1e3a8a] text-white p-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-300 font-bold text-sm border border-blue-400/30">
+          ₹
+        </div>
+        <div>
+          <h3 class="font-bold text-base leading-tight"><%= tenant.name %></h3>
+          <span class="text-[11px] text-blue-200">Razorpay Payment Gateway</span>
+        </div>
+      </div>
+      <button type="button" id="btn-close-sim" class="text-white/70 hover:text-white text-xl font-bold cursor-pointer">&times;</button>
+    </div>
+
+    <div class="p-6">
+      <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-5">
+        <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
+          <span>Service</span>
+          <span><%= service.name %></span>
+        </div>
+        <div class="flex justify-between items-center text-xs text-gray-500 mb-2">
+          <span>Payment Type</span>
+          <span class="font-semibold text-emerald-700">Full Payment (100%)</span>
+        </div>
+        <div class="pt-2 border-t border-gray-200 flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Total Amount</span>
+          <span class="text-2xl font-extrabold text-gray-900">₹<%= Number(service.price).toLocaleString() %></span>
+        </div>
+      </div>
+
+      <div class="mb-5 text-center">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 rounded-full text-xs font-medium border border-amber-200">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span>Test Payment Sandbox Mode</span>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Simulate real Razorpay transaction completion for this booking.</p>
+      </div>
+
+      <div class="space-y-3">
+        <button type="button" id="btn-sim-success"
+          class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition shadow flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          <span>Simulate Payment Success (Card / UPI)</span>
+        </button>
+        <button type="button" id="btn-sim-failure"
+          class="w-full py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-xl text-sm transition cursor-pointer">
+          Simulate Payment Failure / Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hold Expired Modal -->
+<div id="hold-expired-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" style="display: none;">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border border-gray-100">
+    <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <h3 class="text-lg font-bold text-gray-900 mb-2">Slot Reservation Expired</h3>
+    <p class="text-sm text-gray-600 mb-6">Your 10-minute slot hold has expired. The time slot has been released so others can book. Please choose a slot again.</p>
+    <button type="button" id="btn-expired-restart"
+      class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition shadow">
+      Select New Slot
+    </button>
   </div>
 </div>
 
@@ -111,8 +268,14 @@
   const TENANT_ID = '<%= tenant.id %>';
   const SERVICE_ID = '<%= service.id %>';
   const TENANT_SLUG = '<%= tenant.slug %>';
+  const SERVICE_PRICE = <%= Number(service.price) %>;
+  const RAZORPAY_KEY = '<%= typeof razorpayKeyId !== "undefined" ? razorpayKeyId : "" %>';
+
   let selectedSlot = null;
-  let holdData = null;
+  let currentHold = null;
+  let activeBooking = null;
+  let activeOrder = null;
+  let holdInterval = null;
 
   const dateInput = document.getElementById('booking-date');
   if (dateInput) {
@@ -123,12 +286,12 @@
     }
   }
 
-  // Hook buttons directly with event listeners
+  // Hook Step Buttons
   const btnContinue = document.getElementById('btn-continue-step2');
   if (btnContinue) {
     btnContinue.addEventListener('click', function(e) {
       e.preventDefault();
-      goToStep(2);
+      proceedToStep2();
     });
   }
 
@@ -136,7 +299,7 @@
   if (btnChangeSlot) {
     btnChangeSlot.addEventListener('click', function(e) {
       e.preventDefault();
-      goToStep(1);
+      releaseHoldAndReturn();
     });
   }
 
@@ -144,7 +307,7 @@
   if (btnBack) {
     btnBack.addEventListener('click', function(e) {
       e.preventDefault();
-      goToStep(1);
+      releaseHoldAndReturn();
     });
   }
 
@@ -152,11 +315,36 @@
   if (btnBook) {
     btnBook.addEventListener('click', function(e) {
       e.preventDefault();
-      submitBooking();
+      submitBookingAndPay();
     });
   }
 
-  // Initial load
+  // Simulated Payment Modal Handlers
+  const btnCloseSim = document.getElementById('btn-close-sim');
+  if (btnCloseSim) {
+    btnCloseSim.addEventListener('click', () => closeSimModal());
+  }
+
+  const btnSimSuccess = document.getElementById('btn-sim-success');
+  if (btnSimSuccess) {
+    btnSimSuccess.addEventListener('click', () => handleSimulatedPayment(true));
+  }
+
+  const btnSimFailure = document.getElementById('btn-sim-failure');
+  if (btnSimFailure) {
+    btnSimFailure.addEventListener('click', () => handleSimulatedPayment(false));
+  }
+
+  const btnExpiredRestart = document.getElementById('btn-expired-restart');
+  if (btnExpiredRestart) {
+    btnExpiredRestart.addEventListener('click', function() {
+      document.getElementById('hold-expired-modal').style.display = 'none';
+      document.getElementById('hold-expired-modal').classList.add('hidden');
+      resetToStep1();
+    });
+  }
+
+  // Initial slot load
   loadSlots();
 
   async function loadSlots() {
@@ -179,7 +367,7 @@
         return;
       }
       
-      let html = '<p class="text-sm font-medium text-gray-700 mb-3">Available slots (' + data.count + '):</p>';
+      let html = '<p class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Available Slots (' + data.count + '):</p>';
       html += '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">';
       data.slots.forEach(s => {
         const t = new Date(s.startTime);
@@ -197,7 +385,6 @@
       html += '</div>';
       container.innerHTML = html;
 
-      // Attach click handlers to all buttons
       container.querySelectorAll('.slot-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
           e.preventDefault();
@@ -215,21 +402,18 @@
     const timeStr = btn.getAttribute('data-time-str');
     const staffName = btn.getAttribute('data-staff-name');
 
-    // Deselect all buttons
     document.querySelectorAll('.slot-btn').forEach(b => {
       b.classList.remove('selected', 'border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-300');
       const check = b.querySelector('.slot-check');
       if (check) check.classList.add('hidden');
     });
 
-    // Mark current button as selected
     btn.classList.add('selected', 'border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-300');
     const check = btn.querySelector('.slot-check');
     if (check) check.classList.remove('hidden');
 
     selectedSlot = { startTime, staffId, timeStr, staffName };
 
-    // Show summary bar
     const bar = document.getElementById('slot-action-bar');
     const summary = document.getElementById('selected-slot-summary');
     if (bar && summary) {
@@ -238,10 +422,129 @@
       bar.style.display = 'flex';
     }
 
-    // Auto-advance after 300ms
     setTimeout(() => {
+      proceedToStep2();
+    }, 280);
+  }
+
+  async function proceedToStep2() {
+    if (!selectedSlot) return;
+    const errStep1 = document.getElementById('step-1-error');
+    if (errStep1) {
+      errStep1.style.display = 'none';
+      errStep1.classList.add('hidden');
+    }
+
+    // Acquire lock in Redis & DB
+    try {
+      const holdRes = await fetch('/api/v1/bookings/hold', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: TENANT_ID,
+          serviceId: SERVICE_ID,
+          staffId: selectedSlot.staffId || undefined,
+          startTime: selectedSlot.startTime,
+        }),
+      });
+
+      if (!holdRes.ok) {
+        const err = await holdRes.json().catch(() => ({}));
+        if (errStep1) {
+          errStep1.textContent = err.message || 'This slot was just taken. Please choose another time.';
+          errStep1.classList.remove('hidden');
+          errStep1.style.display = 'block';
+        } else {
+          alert(err.message || 'This slot was just taken. Please choose another time.');
+        }
+        await loadSlots();
+        return;
+      }
+
+      currentHold = await holdRes.json();
+      startHoldCountdown(currentHold.expiresAt);
       goToStep(2);
-    }, 300);
+    } catch (e) {
+      alert(e.message || 'Could not hold slot. Please try again.');
+    }
+  }
+
+  function startHoldCountdown(expiresAt) {
+    if (holdInterval) clearInterval(holdInterval);
+    const expTime = new Date(expiresAt).getTime();
+    const timerCard = document.getElementById('hold-timer-card');
+    const timerDisplay = document.getElementById('hold-countdown');
+
+    if (timerCard) {
+      timerCard.classList.remove('hidden');
+      timerCard.style.display = 'flex';
+    }
+
+    function update() {
+      const now = Date.now();
+      const diff = expTime - now;
+
+      if (diff <= 0) {
+        clearInterval(holdInterval);
+        if (timerDisplay) timerDisplay.textContent = '00:00';
+        handleHoldExpiration();
+        return;
+      }
+
+      const totalSec = Math.floor(diff / 1000);
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      const formatted = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+
+      if (timerDisplay) {
+        timerDisplay.textContent = formatted;
+        if (min < 2) {
+          timerDisplay.className = 'font-mono font-extrabold text-xl text-red-700 bg-red-100 px-3 py-1 rounded-lg border border-red-300 animate-pulse';
+        } else {
+          timerDisplay.className = 'font-mono font-extrabold text-xl text-amber-900 bg-white px-3 py-1 rounded-lg border border-amber-200 shadow-inner';
+        }
+      }
+    }
+
+    update();
+    holdInterval = setInterval(update, 1000);
+  }
+
+  function handleHoldExpiration() {
+    currentHold = null;
+    const modal = document.getElementById('hold-expired-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+    } else {
+      alert('Your 10-minute slot hold has expired. Please select a time slot again.');
+      resetToStep1();
+    }
+  }
+
+  async function releaseHoldAndReturn() {
+    if (currentHold && currentHold.holdId) {
+      try {
+        await fetch('/api/v1/bookings/hold/release', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ holdId: currentHold.holdId, sessionToken: currentHold.sessionToken }),
+        });
+      } catch (e) {}
+    }
+    resetToStep1();
+  }
+
+  function resetToStep1() {
+    if (holdInterval) clearInterval(holdInterval);
+    currentHold = null;
+    const timerCard = document.getElementById('hold-timer-card');
+    if (timerCard) {
+      timerCard.classList.add('hidden');
+      timerCard.style.display = 'none';
+    }
+    goToStep(1);
+    loadSlots();
   }
 
   function goToStep(n) {
@@ -270,115 +573,272 @@
       }
     });
 
-    // If moving to step 2, update slot preview banner
     if (n === 2 && selectedSlot) {
       const preview = document.getElementById('step-2-slot-preview');
       if (preview) {
-        preview.textContent = selectedSlot.timeStr + ' with ' + selectedSlot.staffName;
+        const d = new Date(selectedSlot.startTime);
+        const dayStr = d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+        preview.textContent = dayStr + ', ' + selectedSlot.timeStr + ' with ' + selectedSlot.staffName;
       }
     }
 
-    // Scroll to top of card smoothly
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async function submitBooking() {
+  async function submitBookingAndPay() {
     const errEl = document.getElementById('step-2-error');
     if (errEl) {
       errEl.classList.add('hidden');
+      errEl.style.display = 'none';
       errEl.textContent = '';
     }
 
-    if (!selectedSlot) {
-      if (errEl) {
-        errEl.textContent = 'Please select a time slot first.';
-        errEl.classList.remove('hidden');
-      } else {
-        alert('Please select a time slot first.');
-      }
-      return goToStep(1);
+    if (!currentHold) {
+      alert('Your slot hold expired. Please pick a slot again.');
+      return resetToStep1();
     }
+
     const name = document.getElementById('cust-name').value.trim();
     const email = document.getElementById('cust-email').value.trim();
+    const phone = document.getElementById('cust-phone').value.trim();
+    const notes = document.getElementById('cust-notes').value.trim();
+
     if (!name || !email) {
       if (errEl) {
-        errEl.textContent = 'Full Name and Email are required.';
+        errEl.textContent = 'Please fill in both your Full Name and a valid Email address.';
         errEl.classList.remove('hidden');
+        errEl.style.display = 'block';
       } else {
-        alert('Full Name and Email are required.');
+        alert('Please fill in both your Full Name and a valid Email address.');
       }
       return;
     }
 
     const btn = document.getElementById('btn-book');
     btn.disabled = true;
-    btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Securing Booking...';
+    btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Securing Booking...';
 
     try {
-      // Step A: Hold the slot
-      const holdRes = await fetch('/api/v1/bookings/hold', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenantId: TENANT_ID,
-          serviceId: SERVICE_ID,
-          staffId: selectedSlot.staffId || undefined,
-          startTime: selectedSlot.startTime,
-          customerName: name,
-          customerEmail: email,
-          customerPhone: document.getElementById('cust-phone').value || undefined,
-        }),
-      });
-      if (!holdRes.ok) {
-        const e = await holdRes.json().catch(() => ({}));
-        throw new Error(e.message || 'Slot hold failed');
-      }
-      holdData = await holdRes.json();
-
-      // Step B: Commit the booking
+      // 1. Convert hold to booking (PENDING_PAYMENT)
       const bookRes = await fetch('/api/v1/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          holdId: holdData.holdId,
-          sessionToken: holdData.sessionToken,
+          holdId: currentHold.holdId,
+          sessionToken: currentHold.sessionToken,
           customerName: name,
           customerEmail: email,
-          customerPhone: document.getElementById('cust-phone').value || undefined,
-          notes: document.getElementById('cust-notes').value || undefined,
+          customerPhone: phone || undefined,
+          notes: notes || undefined,
         }),
       });
+
       if (!bookRes.ok) {
         const e = await bookRes.json().catch(() => ({}));
-        throw new Error(e.message || 'Booking confirmation failed');
+        throw new Error(e.message || 'Failed to create booking.');
       }
-      const booking = await bookRes.json();
+      activeBooking = await bookRes.json();
 
-      // Step C: Display Confirmation Details
-      const startDate = new Date(booking.startTime);
-      const timeStr = startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-      const dateStr = startDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      document.getElementById('confirm-details').innerHTML =
-        '<p><strong>Booking ID:</strong> <code class="bg-gray-100 px-1.5 py-0.5 rounded text-primary-700 font-mono text-xs">' + booking.id + '</code></p>' +
-        '<p class="mt-1"><strong>Date:</strong> ' + dateStr + '</p>' +
-        '<p class="mt-1"><strong>Time:</strong> ' + timeStr + '</p>' +
-        '<p class="mt-1"><strong>Status:</strong> <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">' + booking.status + '</span></p>';
-      goToStep(3);
+      // 2. Create Razorpay order (Full payment)
+      btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Initializing Payment...';
+
+      const orderRes = await fetch('/api/v1/payments/order/' + activeBooking.id, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!orderRes.ok) {
+        const e = await orderRes.json().catch(() => ({}));
+        throw new Error(e.message || 'Payment initialization failed.');
+      }
+      activeOrder = await orderRes.json();
+
+      // 3. Open Razorpay Checkout or Simulation
+      const effectiveKey = activeOrder.keyId || RAZORPAY_KEY;
+      const isPlaceholder = activeOrder.isPlaceholder || effectiveKey.includes('placeholder') || !effectiveKey.startsWith('rzp_');
+
+      if (isPlaceholder || typeof Razorpay === 'undefined') {
+        // Open Simulation Modal
+        openSimModal();
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Proceed to Pay ₹' + SERVICE_PRICE.toLocaleString();
+      } else {
+        // Real Razorpay popup
+        const options = {
+          key: effectiveKey,
+          amount: activeOrder.amount,
+          currency: activeOrder.currency || 'INR',
+          name: activeOrder.businessName || '<%= tenant.name %>',
+          description: activeOrder.serviceName || '<%= service.name %>',
+          order_id: activeOrder.orderId,
+          prefill: {
+            name: activeOrder.customerName || name,
+            email: activeOrder.customerEmail || email,
+            contact: activeOrder.customerPhone || phone,
+          },
+          theme: { color: '#2563eb' },
+          handler: async function (response) {
+            await finalizePaymentVerification({
+              bookingId: activeBooking.id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+          },
+          modal: {
+            ondismiss: function () {
+              btn.disabled = false;
+              btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Proceed to Pay ₹' + SERVICE_PRICE.toLocaleString();
+              if (errEl) {
+                errEl.textContent = 'Payment was cancelled or dismissed. You can try again before your hold expires.';
+                errEl.classList.remove('hidden');
+                errEl.style.display = 'block';
+              }
+            },
+          },
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          btn.disabled = false;
+          btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Proceed to Pay ₹' + SERVICE_PRICE.toLocaleString();
+          if (errEl) {
+            errEl.textContent = 'Payment failed: ' + (response.error.description || 'Unknown error');
+            errEl.classList.remove('hidden');
+            errEl.style.display = 'block';
+          }
+        });
+        rzp.open();
+      }
     } catch (err) {
       if (errEl) {
-        errEl.textContent = err.message || 'Booking failed. Please try again.';
+        errEl.textContent = err.message || 'Booking process encountered an error.';
         errEl.classList.remove('hidden');
+        errEl.style.display = 'block';
       } else {
-        alert(err.message || 'Booking failed. Please try again.');
+        alert(err.message || 'Booking process encountered an error.');
       }
       btn.disabled = false;
-      btn.innerHTML = '<span>Confirm Booking</span>';
+      btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Proceed to Pay ₹' + SERVICE_PRICE.toLocaleString();
     }
   }
 
-  // Expose functions globally on window
+  function openSimModal() {
+    const modal = document.getElementById('simulated-payment-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+    }
+  }
+
+  function closeSimModal() {
+    const modal = document.getElementById('simulated-payment-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+  }
+
+  async function handleSimulatedPayment(isSuccess) {
+    closeSimModal();
+    if (!activeBooking || !activeOrder) return;
+
+    if (!isSuccess) {
+      const errEl = document.getElementById('step-2-error');
+      if (errEl) {
+        errEl.textContent = 'Payment was simulated as failed/cancelled. Your hold is still active, you can retry anytime.';
+        errEl.classList.remove('hidden');
+        errEl.style.display = 'block';
+      }
+      return;
+    }
+
+    const simPaymentId = 'pay_sim_' + Math.random().toString(36).substring(2, 10);
+    const simSig = 'sim_sig_' + Math.random().toString(36).substring(2, 12);
+
+    await finalizePaymentVerification({
+      bookingId: activeBooking.id,
+      razorpayOrderId: activeOrder.orderId,
+      razorpayPaymentId: simPaymentId,
+      razorpaySignature: simSig,
+    });
+  }
+
+  async function finalizePaymentVerification(payload) {
+    try {
+      const verRes = await fetch('/api/v1/payments/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!verRes.ok) {
+        const e = await verRes.json().catch(() => ({}));
+        throw new Error(e.message || 'Signature verification failed.');
+      }
+
+      const resData = await verRes.json();
+      const confirmedBooking = resData.booking || activeBooking;
+
+      // Stop hold timer
+      if (holdInterval) clearInterval(holdInterval);
+      const timerCard = document.getElementById('hold-timer-card');
+      if (timerCard) timerCard.style.display = 'none';
+
+      // Render Confirmation UI
+      renderConfirmation(confirmedBooking, payload.razorpayPaymentId);
+      goToStep(3);
+    } catch (err) {
+      alert('Payment received but verification check had an error: ' + err.message);
+    }
+  }
+
+  function renderConfirmation(b, paymentId) {
+    const startDate = new Date(b.startTime);
+    const timeStr = startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = startDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const staffName = (b.staff && b.staff.name) ? b.staff.name : (selectedSlot ? selectedSlot.staffName : 'Specialist');
+
+    const card = document.getElementById('confirm-card');
+    if (card) {
+      card.innerHTML =
+        '<div class="flex items-center justify-between pb-3 border-b border-gray-200">' +
+          '<div>' +
+            '<span class="text-xs text-gray-400 block font-medium">Booking ID</span>' +
+            '<code class="bg-white px-2 py-1 rounded text-primary-700 font-mono text-xs border border-gray-200 select-all">' + b.id + '</code>' +
+          '</div>' +
+          '<div class="text-right">' +
+            '<span class="text-xs text-gray-400 block font-medium">Status</span>' +
+            '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">CONFIRMED & PAID</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="grid sm:grid-cols-2 gap-3 pt-1">' +
+          '<div><span class="text-xs text-gray-500 block">Service</span><span class="font-semibold text-gray-900"><%= service.name %></span></div>' +
+          '<div><span class="text-xs text-gray-500 block">Specialist</span><span class="font-semibold text-gray-900">' + staffName + '</span></div>' +
+          '<div><span class="text-xs text-gray-500 block">Date</span><span class="font-medium text-gray-800">' + dateStr + '</span></div>' +
+          '<div><span class="text-xs text-gray-500 block">Time</span><span class="font-medium text-gray-800">' + timeStr + '</span></div>' +
+        '</div>' +
+        '<div class="mt-2 pt-3 border-t border-gray-200 flex items-center justify-between">' +
+          '<div>' +
+            '<span class="text-xs text-gray-500 block">Payment Reference</span>' +
+            '<span class="font-mono text-xs text-gray-700">' + (paymentId || 'pay_confirmed') + '</span>' +
+          '</div>' +
+          '<div class="text-right">' +
+            '<span class="text-xs text-gray-500 block">Amount Paid</span>' +
+            '<span class="font-bold text-lg text-emerald-600">₹' + SERVICE_PRICE.toLocaleString() + ' <span class="text-xs font-normal text-gray-500">(Full)</span></span>' +
+          '</div>' +
+        '</div>';
+    }
+
+    const btnLookup = document.getElementById('btn-view-booking');
+    if (btnLookup) {
+      btnLookup.href = '/lookup?id=' + encodeURIComponent(b.id) + '&email=' + encodeURIComponent(b.customerEmail);
+    }
+  }
+
+  // Window exposures
   window.loadSlots = loadSlots;
   window.selectSlot = selectSlot;
   window.goToStep = goToStep;
-  window.submitBooking = submitBooking;
+  window.submitBookingAndPay = submitBookingAndPay;
 </script>

@@ -45,8 +45,21 @@ class BookingsService {
       sessionToken,
       expiresAt: hold.expiresAt,
       slot: { startTime: start.toISOString(), endTime: end.toISOString() },
-      service: { name: service.name, price: service.price, depositAmount: service.depositAmount },
+      service: { name: service.name, price: service.price, durationMinutes: service.durationMinutes, depositAmount: service.price },
     };
+  }
+
+  async releaseHold(holdId, sessionToken) {
+    const hold = await prisma.bookingHold.findUnique({ where: { id: holdId } });
+    if (!hold) return { released: true };
+    if (sessionToken && hold.sessionToken !== sessionToken) {
+      throw makeError("Invalid session token", 400);
+    }
+    await prisma.bookingHold.delete({ where: { id: holdId } }).catch(() => {});
+    try {
+      await redis.del(`hold:${hold.tenantId}:${hold.staffId || "any"}:${hold.startTime.toISOString()}`);
+    } catch (e) {}
+    return { released: true };
   }
 
   async createBooking(holdId, sessionToken, customerInfo) {
@@ -63,7 +76,7 @@ class BookingsService {
           data: {
             tenantId: hold.tenantId, serviceId: hold.serviceId,
             staffId: hold.staffId, startTime: hold.startTime, endTime: hold.endTime,
-            status: "PENDING_PAYMENT", price: service.price, depositAmount: service.depositAmount,
+            status: "PENDING_PAYMENT", price: service.price, depositAmount: service.price,
             customerName: customerInfo?.customerName || "Guest",
             customerEmail: customerInfo?.customerEmail || "guest@placeholder.com",
             customerPhone: customerInfo?.customerPhone || null,
