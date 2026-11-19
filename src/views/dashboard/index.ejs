@@ -16,31 +16,32 @@
         </p>
       </div>
 
-      <!-- Period + Public Link row -->
-      <div class="flex flex-wrap items-center gap-3">
-        <!-- Public booking link pill -->
-        <div class="flex items-center gap-2 bg-primary-50 border border-primary-200 rounded-lg px-3 py-1.5 max-w-xs">
-          <svg class="w-4 h-4 text-primary-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+      <!-- Period + Action buttons -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Copy Booking Link Button -->
+        <button type="button" id="btn-copy-header-link" onclick="copyHeaderLink(this)"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 active:bg-gray-50 text-gray-700 text-xs sm:text-sm font-medium rounded-lg shadow-sm transition">
+          <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
           </svg>
-          <a href="/<%= reqProtocol %>://<%= reqHost %>/business/<%= tenant.slug %>" target="_blank"
-            class="text-xs text-primary-700 font-medium truncate max-w-[180px] hover:underline"
-            title="<%= reqProtocol %>://<%= reqHost %>/business/<%= tenant.slug %>">
-            /business/<%= tenant.slug %>
-          </a>
-          <button onclick="copyLink(this, '<%= reqProtocol %>://<%= reqHost %>/business/<%= tenant.slug %>')"
-            class="flex-shrink-0 text-primary-500 hover:text-primary-700 transition" title="Copy link">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-            </svg>
-          </button>
-        </div>
+          <span>Copy Booking Link</span>
+        </button>
+
+        <!-- View Live Page Button -->
+        <a href="/business/<%= tenant.slug %>" target="_blank"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 border border-primary-200 hover:bg-primary-100 text-primary-700 text-xs sm:text-sm font-medium rounded-lg transition"
+          title="Open your public booking page in a new tab">
+          <span>View Live Page</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+        </a>
 
         <!-- Period selector -->
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-500 font-medium">Period:</label>
+        <div class="flex items-center gap-1.5 pl-1 sm:pl-2 border-l border-gray-200">
+          <label class="text-xs sm:text-sm text-gray-500 font-medium">Period:</label>
           <select id="period-select" onchange="window.location.href='/dashboard?period='+this.value"
-            class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none cursor-pointer">
+            class="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none cursor-pointer">
             <option value="1d" <%= stats.period === '1d' ? 'selected' : '' %>>Today</option>
             <option value="7d" <%= stats.period === '7d' ? 'selected' : '' %>>7 Days</option>
             <option value="30d" <%= stats.period === '30d' ? 'selected' : '' %>>30 Days</option>
@@ -229,24 +230,30 @@
           </div>
 
           <!-- Public link full copy box -->
-          <div class="bg-gray-50 rounded-lg border border-dashed border-gray-300 p-3 mb-3">
-            <p class="text-xs text-gray-500 font-medium mb-1.5">📎 Your booking page</p>
-            <div class="flex items-center gap-2">
+          <div class="bg-gray-50 rounded-xl border border-gray-200 p-3 mb-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                <svg class="w-3.5 h-3.5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                Booking Page URL
+              </span>
+              <span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">Active</span>
+            </div>
+            <div class="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1.5">
               <input id="pub-link" readonly
-                value="<%= reqProtocol %>://<%= reqHost %>/business/<%= tenant.slug %>"
-                class="text-xs text-gray-600 bg-transparent flex-1 outline-none truncate select-all cursor-pointer"
+                value="<%= typeof reqProtocol !== 'undefined' ? reqProtocol : 'http' %>://<%= typeof reqHost !== 'undefined' ? reqHost : 'localhost:3000' %>/business/<%= tenant.slug %>"
+                class="text-xs text-gray-700 bg-transparent flex-1 outline-none truncate select-all cursor-pointer font-medium pl-1"
                 onclick="this.select()">
-              <button onclick="copyLink(this, '<%= reqProtocol %>://<%= reqHost %>/business/<%= tenant.slug %>')"
-                class="flex-shrink-0 px-2.5 py-1.5 bg-primary-600 text-white text-xs font-semibold rounded-md hover:bg-primary-700 transition whitespace-nowrap">
+              <button onclick="copySidebarLink(this)"
+                class="flex-shrink-0 px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-md shadow-sm transition whitespace-nowrap">
                 Copy
               </button>
             </div>
           </div>
 
           <a href="/business/<%= tenant.slug %>" target="_blank"
-            class="flex items-center justify-center gap-2 w-full py-2 border border-primary-200 text-primary-600 text-sm font-medium rounded-lg hover:bg-primary-50 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-            Preview booking page
+            class="flex items-center justify-center gap-1.5 w-full py-2 border border-primary-200 bg-primary-50/50 hover:bg-primary-50 text-primary-700 text-xs sm:text-sm font-semibold rounded-lg transition shadow-xs">
+            <span>Preview Booking Page</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
           </a>
         </div>
 
@@ -278,21 +285,43 @@
 </div>
 
 <script>
-function copyLink(btn, url) {
+function getFullBookingUrl() {
+  var input = document.getElementById('pub-link');
+  if (input && input.value) return input.value;
+  return window.location.origin + '/business/<%= tenant.slug %>';
+}
+
+function copyHeaderLink(btn) {
+  var url = getFullBookingUrl();
+  navigator.clipboard.writeText(url).then(function() {
+    var origHtml = btn.innerHTML;
+    btn.innerHTML = '<svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span class="text-emerald-700 font-semibold">Copied!</span>';
+    btn.classList.add('border-emerald-300', 'bg-emerald-50');
+    setTimeout(function() {
+      btn.innerHTML = origHtml;
+      btn.classList.remove('border-emerald-300', 'bg-emerald-50');
+    }, 2000);
+  }).catch(function() {
+    var input = document.getElementById('pub-link');
+    if (input) { input.select(); document.execCommand('copy'); }
+  });
+}
+
+function copySidebarLink(btn) {
+  var url = getFullBookingUrl();
   navigator.clipboard.writeText(url).then(function() {
     var orig = btn.innerHTML;
     btn.innerHTML = '✓ Copied!';
-    btn.classList.add('bg-green-600');
     btn.classList.remove('bg-primary-600');
+    btn.classList.add('bg-emerald-600');
     setTimeout(function() {
       btn.innerHTML = orig;
-      btn.classList.remove('bg-green-600');
+      btn.classList.remove('bg-emerald-600');
       btn.classList.add('bg-primary-600');
     }, 2000);
   }).catch(function() {
-    // fallback
-    var el = document.getElementById('pub-link');
-    if (el) { el.select(); document.execCommand('copy'); }
+    var input = document.getElementById('pub-link');
+    if (input) { input.select(); document.execCommand('copy'); }
   });
 }
 </script>
