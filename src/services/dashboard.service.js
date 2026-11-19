@@ -3,7 +3,7 @@ const prisma = require("../utils/prisma.client");
 
 class DashboardService {
   async getStats(tenantId, period = "30d") {
-    const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
+    const days = period === "1d" ? 1 : period === "7d" ? 7 : period === "90d" ? 90 : 30;
     const from = subDays(new Date(), days);
 
     const [total, confirmed, cancelled, noShow, revenue] = await Promise.all([

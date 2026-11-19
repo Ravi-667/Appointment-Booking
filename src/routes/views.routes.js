@@ -112,6 +112,67 @@ router.get("/logout", (req, res) => {
   });
 });
 
+// ─── PROFILE ─────────────────────────────────────────────────────────────────
+
+router.get("/profile", viewAuth, async (req, res) => {
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: req.session.user.id },
+      select: { id: true, name: true, email: true, role: true, avatarUrl: true,
+                createdAt: true, passwordHash: true, googleId: true },
+    });
+    const profileUser = {
+      ...dbUser,
+      hasPassword: !!dbUser.passwordHash,
+      hasGoogleId: !!dbUser.googleId,
+    };
+    res.render("profile", { title: "My Profile", profileUser });
+  } catch (err) {
+    req.flash("error", "Could not load profile.");
+    res.redirect("/");
+  }
+});
+
+router.post("/profile/update", viewAuth, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    if (!name || name.trim().length < 2) throw new Error("Name must be at least 2 characters.");
+    if (!email || !email.includes("@")) throw new Error("Invalid email address.");
+
+    // Check if email is taken by another user
+    const existing = await prisma.user.findFirst({ where: { email: email.trim() } });
+    if (existing && existing.id !== req.session.user.id) {
+      throw new Error("That email is already in use by another account.");
+    }
+
+    await prisma.user.update({
+      where: { id: req.session.user.id },
+      data: { name: name.trim(), email: email.trim() },
+    });
+    // Update session
+    req.session.user.name = name.trim();
+    req.session.user.email = email.trim();
+    req.flash("success", "Profile updated successfully!");
+  } catch (err) {
+    req.flash("error", err.message || "Failed to update profile.");
+  }
+  res.redirect("/profile");
+});
+
+router.post("/profile/change-password", viewAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (newPassword !== confirmPassword) throw new Error("New passwords do not match.");
+    if (!newPassword || newPassword.length < 8) throw new Error("Password must be at least 8 characters.");
+    await authService.changePassword(req.session.user.id, currentPassword, newPassword);
+    req.flash("success", "Password changed successfully!");
+  } catch (err) {
+    req.flash("error", err.message || "Failed to change password.");
+  }
+  res.redirect("/profile");
+});
+
+
 // ─── GOOGLE OAUTH ────────────────────────────────────────────────────────────
 
 router.get("/auth/google",
