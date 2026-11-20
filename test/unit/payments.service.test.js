@@ -2,9 +2,17 @@ require("dotenv").config();
 const crypto = require("crypto");
 const prisma = require("../../src/utils/prisma.client");
 const paymentsService = require("../../src/services/payments.service");
+const notificationsService = require("../../src/services/notifications.service");
 const kafka = require("../../src/utils/kafka.client");
 
 describe("PaymentsService - Full Payment & Razorpay Flow", () => {
+  beforeEach(() => {
+    jest.spyOn(notificationsService, "notifyBookingConfirmed").mockResolvedValue();
+    if (prisma.inAppNotification) {
+      jest.spyOn(prisma.inAppNotification, "create").mockResolvedValue({});
+    }
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

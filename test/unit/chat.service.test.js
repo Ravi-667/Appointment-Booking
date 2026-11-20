@@ -1,8 +1,16 @@
 require("dotenv").config();
 const prisma = require("../../src/utils/prisma.client");
 const chatService = require("../../src/services/chat.service");
+const notificationsService = require("../../src/services/notifications.service");
 
 describe("ChatService - Dual Chat Panels", () => {
+  beforeEach(() => {
+    jest.spyOn(notificationsService, "notifyChatMessage").mockResolvedValue();
+    if (prisma.inAppNotification) {
+      jest.spyOn(prisma.inAppNotification, "create").mockResolvedValue({});
+    }
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
