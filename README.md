@@ -204,12 +204,51 @@ graph TD
 
 The platform includes seed data featuring 4 distinct industries and operational appointments:
 
-| Business Name | Category | Public Booking Page | Owner Login (`SecurePass@1`) |
-|---|---|---|---|
-| **Radha Beauty Salon** | Salon & Spa | [`/business/radha-beauty-salon`](https://appointment-booking-3dz0.onrender.com/business/radha-beauty-salon) | `radha@salon.com` |
-| **Aura Dental Care & Clinic** | Dental & Healthcare | [`/business/aura-dental-clinic`](https://appointment-booking-3dz0.onrender.com/business/aura-dental-clinic) | `dr.arun@auradental.com` |
-| **Zenith Physiotherapy & Rehab** | Physiotherapy & Fitness | [`/business/zenith-physio-rehab`](https://appointment-booking-3dz0.onrender.com/business/zenith-physio-rehab) | `vikram@zenithphysio.com` |
-| **Urban Kings Men's Grooming** | Men's Salon & Grooming | [`/business/urban-kings-grooming`](https://appointment-booking-3dz0.onrender.com/business/urban-kings-grooming) | `kabir@urbankings.com` |
+| Business Name | Category | Public Booking Page | Owner Login (`SecurePass@1`) | Sample Staff Account |
+|---|---|---|---|---|
+| **Radha Beauty Salon** | Salon & Spa | [`/business/radha-beauty-salon`](https://appointment-booking-3dz0.onrender.com/business/radha-beauty-salon) | `radha@salon.com` | `priya@salon.com` (Senior Stylist) |
+| **Aura Dental Care & Clinic** | Dental & Healthcare | [`/business/aura-dental-clinic`](https://appointment-booking-3dz0.onrender.com/business/aura-dental-clinic) | `dr.arun@auradental.com` | `dr.sneha@auradental.com` (Dentist) |
+| **Zenith Physiotherapy & Rehab** | Physiotherapy & Fitness | [`/business/zenith-physio-rehab`](https://appointment-booking-3dz0.onrender.com/business/zenith-physio-rehab) | `vikram@zenithphysio.com` | `anita@zenithphysio.com` (Physio) |
+| **Urban Kings Men's Grooming** | Men's Salon & Grooming | [`/business/urban-kings-grooming`](https://appointment-booking-3dz0.onrender.com/business/urban-kings-grooming) | `kabir@urbankings.com` | `rohit@urbankings.com` (Stylist) |
+
+---
+
+## 🧑‍💼 Staff Portal & Lifecycle Operational Guide
+
+The platform features an isolated **Staff Portal** designed for specialists, stylists, and clinic practitioners. Below is the operational workflow across Owners, Staff, and Customers:
+
+### 1. 🔒 The Core Security Rule: Login-Only Architecture
+* Public registration for role `STAFF` is strictly prohibited at `/register` to prevent unauthorized staff accounts.
+* Staff credentials can **only** be created by a Business Owner via:
+  1. **Existing Staff Members:** Owner clicks **"Give Login Access"** on `/dashboard/staff`.
+  2. **New Hires:** Owner clicks **"Accept & Hire"** on candidate applications (`/business/:slug/apply-staff`), which automatically generates their account.
+
+### 2. 🔑 Dual-Channel Credential Provisioning
+When an owner grants portal access from `/dashboard/staff`:
+* The owner can generate a secure random password or enter a custom one.
+* The backend creates/updates the User account with `role: "STAFF"` and delivers credentials through two synchronized channels:
+  * ✉️ **Branded Email:** Official onboarding email containing the login URL, email, and temporary password.
+  * 💬 **In-App Team Chat:** Automated welcome message posted directly into the private Owner-Staff chat thread (`staff_<staffId>`).
+
+### 3. 🚪 Scoped Specialist Dashboard (`/staff/dashboard`)
+Upon logging in at `/login`, staff members are automatically routed to their scoped dashboard (`/staff/dashboard`). Attempting to access the owner `/dashboard` safely redirects back to `/staff/dashboard`.
+
+The portal provides 4 dedicated workspaces:
+* 📅 **My Appointments:** Filtered view displaying only sessions assigned to that specialist (Today, Upcoming, and Past). Staff can mark sessions as *Completed*, *No-Show*, or *Cancelled*, or click **"Chat with Client"** to open a real-time consultation modal.
+* ⏰ **My Schedule & Overrides:** Displays weekly working hours and allows staff to submit date-specific day-off requests or custom working hours (`/staff/schedule/override`).
+* 💬 **Team Chat with Owner:** Direct real-time Socket.IO chat room with their salon/clinic owner, with complete credentials history and typing indicators.
+* 👤 **Profile & Security:** Specialist bio, authorized service qualifications, and password update form.
+
+### 4. 💬 Two-Way Specialist <-> Customer Consultation Chat
+* **Customer Side (`/my-bookings`):** Customers view their confirmed appointments and click **"Chat with Specialist"** under their assigned practitioner's name.
+* **Staff Side (`/staff/dashboard`):** Specialists click **"Chat with Client"** on their appointment cards to answer pre-session questions, allergies, or timing adjustments in real time.
+
+### 5. ⚡ 2-Minute Quick Test Walkthrough
+To test the complete staff workflow on local or production:
+1. **Log in as Owner:** Go to `/login` with `radha@salon.com` / `SecurePass@1`.
+2. **Provision Access:** Go to `/dashboard/staff`, find *Priya Sharma*, click **"Give Login Access"** (or *Reset Credentials*), and copy or set the password.
+3. **Log in as Staff:** Sign out, log in at `/login` as `priya@salon.com` with the password.
+4. **Access Staff Portal:** You are instantly routed to `/staff/dashboard` to manage scoped appointments, schedule overrides, and team chats.
 
 ---
 
