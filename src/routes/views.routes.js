@@ -5,6 +5,7 @@ const servicesService = require("../services/services.service");
 const staffService = require("../services/staff.service");
 const bookingsService = require("../services/bookings.service");
 const dashboardService = require("../services/dashboard.service");
+const notificationsService = require("../services/notifications.service");
 const prisma = require("../utils/prisma.client");
 const passport = require("../utils/passport");
 const { signAccessToken, signRefreshToken } = require("../utils/jwt.utils");
