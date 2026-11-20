@@ -483,16 +483,29 @@ router.post("/dashboard/staff/:id/activate", viewAuth, requireTenant, async (req
   res.redirect("/dashboard/staff");
 });
 
-// Candidate Public Staff Application Route
+// Candidate Public Staff Application Views & Submission
+router.get("/business/:slug/apply-staff", async (req, res, next) => {
+  try {
+    const tenant = await tenantsService.findBySlug(req.params.slug);
+    res.render("public/apply-staff", {
+      title: `Apply to ${tenant.name} - Careers`,
+      tenant,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post("/business/:slug/apply-staff", async (req, res) => {
   try {
     const tenant = await tenantsService.findBySlug(req.params.slug);
     await staffService.applyForStaff(tenant.id, req.body);
     req.flash("success", `Application submitted successfully to ${tenant.name}! The owner will review your application.`);
+    res.redirect(`/business/${req.params.slug}`);
   } catch (err) {
     req.flash("error", err.message || "Failed to submit job application.");
+    res.redirect(`/business/${req.params.slug}/apply-staff`);
   }
-  res.redirect(`/business/${req.params.slug}`);
 });
 
 // Settings

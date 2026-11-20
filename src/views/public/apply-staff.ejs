@@ -1,0 +1,129 @@
+<!-- Public Candidate Job Application Page -->
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <!-- Back Link -->
+  <div class="mb-5">
+    <a href="/business/<%= tenant.slug %>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary-600 transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+      <span>Back to <%= tenant.name %></span>
+    </a>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+    <!-- Business Banner -->
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 sm:px-8 py-8 text-white">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/20 text-white tracking-wide uppercase">
+          Career Opportunity
+        </span>
+        <% if (tenant.category) { %>
+          <span class="text-xs text-primary-100">• <%= tenant.category %></span>
+        <% } %>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-bold leading-tight">Join the Team at <%= tenant.name %></h1>
+      <p class="text-xs sm:text-sm text-primary-100 mt-2 max-w-xl">
+        We are seeking talented professionals, specialists, and therapists to deliver outstanding experiences to our clients. Submit your profile below for owner review.
+      </p>
+
+      <div class="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-white/20 text-xs text-primary-100">
+        <% if (tenant.address) { %>
+          <span class="flex items-center gap-1">📍 <%= tenant.address %></span>
+        <% } %>
+        <% if (tenant.phone) { %>
+          <span class="flex items-center gap-1">📞 <%= tenant.phone %></span>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Application Form Container -->
+    <div class="p-6 sm:p-8">
+      <form action="/business/<%= tenant.slug %>/apply-staff" method="POST" class="space-y-5">
+        
+        <!-- Applicant Info -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Full Name *</label>
+            <input type="text" name="applicantName" required placeholder="e.g. Priya Sharma"
+              value="<%= typeof user !== 'undefined' && user ? user.name : '' %>"
+              class="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Email Address *</label>
+            <input type="email" name="email" required placeholder="priya@example.com"
+              value="<%= typeof user !== 'undefined' && user ? user.email : '' %>"
+              class="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Phone Number</label>
+            <input type="tel" name="phone" placeholder="+91 98765 43210"
+              class="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Position / Role Applying For *</label>
+            <input type="text" id="role-title-input" name="roleTitle" required placeholder="e.g. Senior Hair Stylist, Therapist"
+              class="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+          </div>
+        </div>
+
+        <!-- Quick Select Role Chips -->
+        <div>
+          <span class="text-[11px] font-semibold text-gray-400 block mb-1.5">Quick Select Role:</span>
+          <div class="flex flex-wrap gap-2">
+            <% const roles = ['Senior Stylist', 'Hairdresser', 'Esthetician', 'Massage Therapist', 'Barber', 'Nail Technician', 'Physiotherapist', 'Salon Assistant', 'Receptionist']; %>
+            <% roles.forEach(r => { %>
+              <button type="button" onclick="setRole('<%= r %>')"
+                class="px-2.5 py-1 text-xs bg-gray-100 hover:bg-primary-50 hover:text-primary-700 text-gray-700 rounded-lg border border-gray-200 transition cursor-pointer">
+                <%= r %>
+              </button>
+            <% }) %>
+          </div>
+        </div>
+
+        <!-- Experience -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Experience & Certifications</label>
+          <input type="text" name="experience" placeholder="e.g. 5+ years experience in hair spa treatments, certified bridal artist"
+            class="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+          <p class="text-[11px] text-gray-400 mt-1">Mention relevant years in the industry, diplomas or specialties.</p>
+        </div>
+
+        <!-- Cover Note -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Cover Letter / Note to Business Owner</label>
+          <textarea name="coverNote" rows="4" placeholder="Introduce yourself, your working style, and why you would love to work with <%= tenant.name %>..."
+            class="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"></textarea>
+        </div>
+
+        <!-- Submit & Actions -->
+        <div class="pt-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p class="text-xs text-gray-400 text-center sm:text-left">
+            Your application will be sent directly to the business owner for evaluation.
+          </p>
+          <div class="flex items-center gap-3 w-full sm:w-auto">
+            <a href="/business/<%= tenant.slug %>"
+              class="w-1/2 sm:w-auto text-center px-4 py-2.5 border border-gray-300 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-50 transition cursor-pointer">
+              Cancel
+            </a>
+            <button type="submit"
+              class="w-1/2 sm:w-auto px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
+              Submit Application
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setRole(title) {
+    var input = document.getElementById('role-title-input');
+    if (input) {
+      input.value = title;
+      input.focus();
+    }
+  }
+</script>

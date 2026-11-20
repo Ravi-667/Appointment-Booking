@@ -75,11 +75,18 @@
         <h3 class="text-base font-bold text-gray-900 mt-0.5">Want to work with <%= tenant.name %>?</h3>
         <p class="text-xs text-gray-500 mt-0.5">We are always looking for talented specialists, therapists, and stylists to join our team.</p>
       </div>
-      <button type="button" onclick="openApplyStaffModal()"
-        class="flex-shrink-0 px-4 py-2.5 bg-white hover:bg-primary-50 text-primary-700 text-xs font-semibold rounded-xl border border-primary-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer">
-        <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-        <span>Apply as Staff</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <a href="/business/<%= tenant.slug %>/apply-staff"
+          class="flex-shrink-0 px-3.5 py-2 bg-white hover:bg-primary-50 text-primary-700 text-xs font-semibold rounded-xl border border-primary-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          <span>Job Details</span>
+        </a>
+        <button type="button" onclick="openApplyStaffModal()"
+          class="flex-shrink-0 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+          <span>Quick Apply</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
