@@ -47,6 +47,31 @@ router.get("/", authenticate, async (req, res, next) => {
   try { res.json(await bookingsService.getBookings(req.user.tenantId, req.query)); } catch (e) { next(e); }
 });
 
+// Customer bookings hub API across multiple tenants
+router.get("/my-bookings", async (req, res, next) => {
+  try {
+    const sessionEmail = req.session?.user?.email;
+    const queryEmail = req.query.email;
+    const email = sessionEmail || queryEmail;
+    if (!email) {
+      return res.json({ upcoming: [], past: [], total: 0 });
+    }
+    const result = await bookingsService.getCustomerBookings(email);
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
+// Customer cancellation from My Bookings portal
+router.post("/:id/customer-cancel", async (req, res, next) => {
+  try {
+    const sessionEmail = req.session?.user?.email;
+    const email = sessionEmail || req.body.email;
+    const reason = req.body.reason || "Cancelled by customer";
+    const result = await bookingsService.customerCancel(req.params.id, email, reason);
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
 // Public booking lookup by ID + email (no auth needed)
 router.get("/lookup", async (req, res, next) => {
   try {

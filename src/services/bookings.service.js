@@ -203,6 +203,115 @@ class BookingsService {
     return b;
   }
 
+  async getCustomerBookings(email) {
+    if (!email || !email.trim()) {
+      return { upcoming: [], past: [], total: 0 };
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const now = new Date();
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        customerEmail: {
+          equals: cleanEmail,
+          mode: "insensitive",
+        },
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            category: true,
+            phone: true,
+            address: true,
+          },
+        },
+        service: {
+          select: {
+            id: true,
+            name: true,
+            durationMinutes: true,
+            price: true,
+          },
+        },
+        staff: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        payments: {
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            type: true,
+          },
+        },
+      },
+      orderBy: { startTime: "desc" },
+    });
+
+    const upcoming = [];
+    const past = [];
+
+    bookings.forEach((b) => {
+      const isPastOrCancelled = new Date(b.startTime) < now || b.status === "CANCELLED" || b.status === "NO_SHOW";
+      if (isPastOrCancelled) {
+        past.push(b);
+      } else {
+        upcoming.push(b);
+      }
+    });
+
+    return {
+      upcoming,
+      past,
+      total: bookings.length,
+    };
+  }
+
+  async customerCancel(bookingId, customerEmail, reason) {
+    if (!customerEmail || !customerEmail.trim()) {
+      throw makeError("Customer email is required", 400);
+    }
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        customerEmail: { equals: customerEmail.toLowerCase().trim(), mode: "insensitive" },
+      },
+      include: { service: true, tenant: true },
+    });
+    if (!booking) throw makeError("Booking not found", 404);
+    if (booking.status === "CANCELLED") return booking;
+
+    const updated = await prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        status: "CANCELLED",
+        cancellationReason: reason || "Cancelled by customer via My Bookings",
+      },
+      include: { tenant: true, service: true },
+    });
+
+    try {
+      await kafka.publish("booking.cancelled", {
+        bookingId: updated.id,
+        tenantId: updated.tenantId,
+        customerEmail: updated.customerEmail,
+        customerName: updated.customerName,
+        serviceName: updated.service?.name,
+        reason: updated.cancellationReason,
+      });
+    } catch (err) {
+      console.warn("Kafka publish error (customer cancel):", err.message);
+    }
+
+    return updated;
+  }
+
   async cleanupExpiredHolds() {
     const deleted = await prisma.bookingHold.deleteMany({
       where: { expiresAt: { lt: new Date() } },

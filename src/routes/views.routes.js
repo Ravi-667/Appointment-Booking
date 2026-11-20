@@ -255,8 +255,26 @@ router.get("/book/:slug", async (req, res, next) => {
   }
 });
 
+router.get("/my-bookings", async (req, res, next) => {
+  try {
+    const user = req.session?.user || null;
+    let initialBookings = null;
+    if (user && user.email) {
+      initialBookings = await bookingsService.getCustomerBookings(user.email);
+    }
+    res.render("public/my-bookings", {
+      title: "My Bookings",
+      user,
+      initialBookings,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/lookup", (req, res) => {
-  res.render("public/lookup", { title: "Track Booking" });
+  const qs = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+  res.redirect(301, "/my-bookings" + qs);
 });
 
 // ─── DASHBOARD ──────────────────────────────────────────────────────────────

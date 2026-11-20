@@ -8,10 +8,47 @@ describe("Customer Booking Lookup API & View", () => {
     jest.restoreAllMocks();
   });
 
-  it("GET /lookup should render the public tracking page with status 200", async () => {
-    const res = await request(app).get("/lookup");
+  it("GET /my-bookings should render the My Bookings portal with status 200", async () => {
+    const res = await request(app).get("/my-bookings");
     expect(res.statusCode).toBe(200);
-    expect(res.text).toContain("Track Your Booking");
+    expect(res.text).toContain("My Bookings");
+  });
+
+  it("GET /lookup should render or redirect to the My Bookings portal", async () => {
+    const res = await request(app).get("/lookup");
+    expect([200, 301, 302]).toContain(res.statusCode);
+  });
+
+  it("GET /api/v1/bookings/my-bookings should return empty bookings when no email provided", async () => {
+    const res = await request(app).get("/api/v1/bookings/my-bookings");
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ upcoming: [], past: [], total: 0 });
+  });
+
+  it("GET /api/v1/bookings/my-bookings should return customer appointments for matching email", async () => {
+    jest.spyOn(prisma.booking, "findMany").mockResolvedValue([
+      {
+        id: "b-1",
+        customerName: "Ravi",
+        customerEmail: "ravi@example.com",
+        status: "CONFIRMED",
+        startTime: new Date(Date.now() + 86400000), // tomorrow
+        price: 999.0,
+        tenant: { name: "Radha Beauty Salon", slug: "radha-beauty-salon" },
+        service: { name: "Herbal Facial", durationMinutes: 45 },
+        staff: { name: "Priya" },
+        payments: [],
+      },
+    ]);
+
+    const res = await request(app)
+      .get("/api/v1/bookings/my-bookings")
+      .query({ email: "ravi@example.com" });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.upcoming.length).toBe(1);
+    expect(res.body.upcoming[0].customerName).toBe("Ravi");
+    expect(res.body.upcoming[0].tenant.name).toBe("Radha Beauty Salon");
   });
 
   it("GET /api/v1/bookings/lookup should require both id and email query params", async () => {
