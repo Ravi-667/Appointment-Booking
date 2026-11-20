@@ -33,6 +33,14 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Allow user to join user notification room (by email)
+  socket.on("join:user", (email) => {
+    if (email && typeof email === "string") {
+      socket.join(`user:${email.toLowerCase().trim()}`);
+      console.log(`Socket ${socket.id} joined user: ${email.toLowerCase().trim()}`);
+    }
+  });
+
   // Authenticate token if present
   const token = socket.handshake.auth?.token;
   if (token) {
@@ -42,6 +50,9 @@ io.on("connection", (socket) => {
         socket.data.tenantId = payload.tenantId;
         socket.join(`tenant:${payload.tenantId}`);
         console.log(`WS client joined tenant:${payload.tenantId}`);
+      }
+      if (payload.email) {
+        socket.join(`user:${payload.email.toLowerCase().trim()}`);
       }
     } catch {
       // Ignored for unauthenticated visitor chat connections
@@ -57,20 +68,6 @@ io.on("connection", (socket) => {
 app.set("io", io);
 const notificationsService = require("./services/notifications.service");
 notificationsService.setIo(io);
-
-// Socket.IO notification room subscriptions
-io.on("connection", (socket) => {
-  socket.on("join:user", (email) => {
-    if (email) {
-      socket.join(`user:${email.toLowerCase().trim()}`);
-    }
-  });
-
-  socket.on("join:tenant", (tId) => {
-    if (tId) {
-      socket.join(`tenant:${tId}`);
-    }
-  });
 
 // Connect Redis before starting
 redis.connect().catch(() => {
