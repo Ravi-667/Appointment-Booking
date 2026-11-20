@@ -420,16 +420,18 @@ router.post("/dashboard/services/:id/delete", viewAuth, requireTenant, async (re
 router.get("/dashboard/staff", viewAuth, requireTenant, async (req, res, next) => {
   try {
     const tenantId = req.user.tenantId;
-    const [staffList, services, applications] = await Promise.all([
+    const [staffList, services, applications, tenant] = await Promise.all([
       staffService.findAll(tenantId, true),
       servicesService.findAll(tenantId, false),
       staffService.getApplications(tenantId),
+      tenantsService.findOne(tenantId).catch(() => null),
     ]);
     res.render("dashboard/staff", {
       title: "Staff & Recruitment Hub",
       staffList,
       services,
       applications,
+      tenant,
     });
   } catch (err) { next(err); }
 });

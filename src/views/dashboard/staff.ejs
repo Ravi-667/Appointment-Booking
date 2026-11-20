@@ -563,7 +563,7 @@
     emailInp.value = email || '';
     
     // Auto-generate a clean readable secure temporary password
-    var cleanSlug = "<%= (tenant && tenant.slug ? tenant.slug : 'team').replace(/[^a-zA-Z0-9]/g, '') %>";
+    var cleanSlug = "<%= (typeof tenant !== 'undefined' && tenant && tenant.slug ? tenant.slug : 'team').replace(/[^a-zA-Z0-9]/g, '') %>";
     passInp.value = 'Staff@' + (cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1)) + Math.floor(100 + Math.random() * 900) + '!';
 
     modal.style.display = 'flex';
