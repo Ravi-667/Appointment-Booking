@@ -1,104 +1,213 @@
-# 📅 Appointment Booking Platform
+# 📅 BookingApp — Production-Grade Multi-Tenant Appointment Booking Platform
 
-[![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-v20%2B-green.svg)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express-4.x-blue.svg)](https://expressjs.com/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma-5.x-teal.svg)](https://www.prisma.io/)
 [![Neon Database](https://img.shields.io/badge/Neon-PostgreSQL-00e699.svg)](https://neon.tech/)
 [![Redis](https://img.shields.io/badge/Redis-7.x-red.svg)](https://redis.io/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-black.svg)](https://socket.io/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.x-38bdf8.svg)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Jest%20Tests-31%20Passed-brightgreen.svg)]()
+[![Jest Tests](https://img.shields.io/badge/Jest%20Tests-72%20Passed%20(100%25)-brightgreen.svg)]()
+[![Swagger](https://img.shields.io/badge/OpenAPI%203.0-Swagger%20UI-85EA2D.svg)](https://appointment-booking-3dz0.onrender.com/api/docs)
+[![CI/CD](https://img.shields.io/badge/GitHub%20Actions-CI%20Passing-success.svg)]()
 [![Live on Render](https://img.shields.io/badge/Live%20Demo-Render.com-46E3B7.svg)](https://appointment-booking-3dz0.onrender.com)
 
-> 🚀 **Live Demo:** [https://appointment-booking-3dz0.onrender.com](https://appointment-booking-3dz0.onrender.com)
-
-A complete, production-grade **Multi-Tenant Appointment Booking SaaS Platform** designed for salons, dental clinics, physiotherapy centers, and professional service businesses.
-
-Built with **pure Node.js + Express + Prisma ORM + PostgreSQL (Neon) + Redis + EJS & Tailwind CSS**.
+> 🚀 **Live Production Deployment:** [https://appointment-booking-3dz0.onrender.com](https://appointment-booking-3dz0.onrender.com)  
+> 📖 **Interactive API Documentation:** [https://appointment-booking-3dz0.onrender.com/api/docs](https://appointment-booking-3dz0.onrender.com/api/docs)
 
 ---
 
-## 🌟 Key Features
+## 📖 Executive Overview
 
-### 🏢 Multi-Tenant Architecture
-- Isolated business tenants with custom slugs (e.g., `/business/radha-beauty-salon`).
-- Configurable lead times, advance booking windows, cancellation cutoffs, and buffer minutes per business.
-- Independent operating schedules, holidays, service catalogs, and staff rosters.
+**BookingApp** is a robust, production-grade **Multi-Tenant Appointment Booking & Service Marketplace Platform** designed for salons, healthcare clinics, wellness centers, and professional service businesses. 
 
-### ⏱️ Real-Time Availability Engine & 12-Hour AM/PM UI
-- Automatic time slot generation factoring in business hours, staff shifts, service durations, and buffer times.
-- Unified **12-Hour AM/PM schedule formatting** (`09:00 AM – 07:00 PM`) across public views, dashboard, emails, and SMS.
-- Timezone-aware scheduling configured for `Asia/Kolkata` (customizable per tenant).
+Engineered with high concurrency safety, real-time WebSockets, transactional slot holds, and automated hiring pipelines, BookingApp enables multi-industry tenants to operate independent booking portals with custom catalogs, availability rules, and dedicated staffing.
 
-### 🔒 Race-Condition Proof & Hold Window
-- Powered by Redis `SET key val EX 600 NX` atomic locks.
-- Holds time slots for 10 minutes during customer checkout with a live countdown timer.
-- Automatic slot release on hold expiration, cancellation, or failure to prevent double-booking.
-
-### 💳 100% Upfront Online Payments (Razorpay)
-- Full upfront payment model across all services (no partial deposits).
-- Razorpay Checkout integration with instant client-side HMAC SHA-256 verification and dual-layer webhook confirmation.
-- Built-in sandbox/test mode simulation for testing without active production keys.
-
-### 🖥️ Complete UI Suite (EJS + Tailwind CSS)
-- **Public Customer Portal**:
-  - Homepage showcasing featured businesses (`/`).
-  - Salon/Clinic public profile (`/business/:slug`).
-  - Interactive 3-step booking wizard with real-time slot selection (`/book/:slug`).
-  - Public booking tracking portal (`/lookup`).
-- **Business Management Dashboard** (`/dashboard`):
-  - Real-time revenue metrics, cancellation rates, and upcoming appointment cards.
-  - Interactive table with full-row click redirects and appointment details (`/dashboard/bookings/:id`).
-  - Daily & weekly calendar views (`/dashboard/calendar`).
-  - Service catalog management with pricing controls (`/dashboard/services`).
-  - Staff management and service assignment mapping (`/dashboard/staff`).
-  - Business hours and holiday scheduler (`/dashboard/settings`).
-  - Notification audit logs (`/dashboard/notifications`).
-
-### ⚡ Background Workers & Notifications
-- **BullMQ + Redis Worker**: Automated recurring reminders dispatched 24 hours and 1 hour before appointments.
-- **Nodemailer + MailHog**: Transactional booking confirmation and cancellation emails.
-- **Twilio SMS**: Mobile notification fallback with local console logging.
-- **Audit Logging**: Sensitive actions (cancellations, reschedules, refunds, logins) recorded in the database.
+Built from the ground up using **pure Node.js + Express + Prisma ORM + Serverless PostgreSQL (Neon) + Redis + Socket.IO + EJS + Tailwind CSS**.
 
 ---
 
-## 🏢 Pre-Seeded Demo Businesses
+## 📸 Website Workflow & UI Showcase
 
-The application comes pre-populated with 4 distinct industries and active appointments:
+| 1. Homepage & Featured Marketplace | 2. Real-Time Slot Selection Wizard |
+| :---: | :---: |
+| ![Homepage](docs/screenshots/01-home-hero.png) | ![Booking Wizard](docs/screenshots/02-booking-wizard.png) |
+| *Multi-tenant directory, industry badges, and verified business search* | *12-Hour AM/PM slot grid, staff assignment, and 10-min countdown lock* |
 
-| Business Name | Category | Public Booking URL | Owner Login (`SecurePass@1`) |
+| 3. Seamless Payment Checkout (Razorpay) | 4. Unified "My Bookings" Customer Portal |
+| :---: | :---: |
+| ![Razorpay Payments](docs/screenshots/03-payment-checkout.png) | ![My Bookings Portal](docs/screenshots/04-my-bookings.png) |
+| *UPI QR Code, Netbanking, Cards & HMAC-SHA256 signature verification* | *Multi-tenant booking tracker without raw UUIDs & consultation chats* |
+
+| 5. Business Analytics & Revenue Dashboard | 6. Staff Recruitment & Hiring Pipeline |
+| :---: | :---: |
+| ![Owner Dashboard](docs/screenshots/05-owner-dashboard.png) | ![Staff Management](docs/screenshots/06-staff-management.png) |
+| *Real-time revenue metrics, cancel rates, and upcoming appointment agenda* | *Two-sided hiring hub: public apply page, candidate review & 1-click hiring* |
+
+| 7. Real-Time Messages & Consultation Hub | 8. Multi-Profile Live Notification Bell |
+| :---: | :---: |
+| ![Chat Hub](docs/screenshots/07-chat-system.png) | ![Notifications Dropdown](docs/screenshots/08-notifications.png) |
+| *Dual-channel Socket.IO chat: visitor inquiries & customer booking chats* | *Live in-app alerts, unread counters, and role-aware smart redirection* |
+
+| 9. Modern Split-Panel Auth Suite |
+| :---: |
+| ![Auth Suite](docs/screenshots/09-auth-split.png) |
+| *Fiverr-style split panel: Google OAuth 2.0, JWT tokens & session cookies* |
+
+---
+
+## 🏗️ Architectural Topology
+
+```mermaid
+graph TD
+    subgraph Clients["Clients & Public Web"]
+        Customer["Customer Browser / Mobile"]
+        Applicant["Prospective Staff Applicant"]
+        Owner["Business Owner Dashboard"]
+    end
+
+    subgraph Gateway["Application Layer (Express.js)"]
+        Router["Express Router & View Controller"]
+        AuthMiddleware["JWT & Session Auth / Google OAuth"]
+        RateLimit["Rate Limiting & Helmet Security"]
+        SocketServer["Socket.IO Server (Real-Time Rooms)"]
+    end
+
+    subgraph Concurrency["Caching & Concurrency Layer"]
+        Redis["Redis 7 (Distributed Slot Hold: 10-min TTL)"]
+        BullMQ["BullMQ Automated Worker Queue"]
+    end
+
+    subgraph DataLayer["Persistence Layer"]
+        PrismaClient["Prisma ORM (Connection Pooler & Direct)"]
+        Postgres["PostgreSQL 15 (Neon Serverless)"]
+    end
+
+    subgraph ThirdParty["External Services & Integrations"]
+        Razorpay["Razorpay Gateway (UPI, QR, Cards, Webhooks)"]
+        Twilio["Twilio SMS Client"]
+        SMTP["Nodemailer (SMTP / MailHog)"]
+    end
+
+    Customer -->|Book Slot / Chat / Cancel| RateLimit
+    Applicant -->|Submit Application| RateLimit
+    Owner -->|Manage Business / Chat / Hire| RateLimit
+
+    RateLimit --> AuthMiddleware --> Router
+    Router --> SocketServer
+    Router --> Redis
+    Router --> PrismaClient
+
+    Redis -->|Hold Slot / Lock| Router
+    BullMQ -->|24h & 1h Reminders| SMTP
+    BullMQ -->|SMS Alerts| Twilio
+    Router --> Razorpay
+    PrismaClient --> Postgres
+```
+
+---
+
+## ⚡ Engineering Highlights & Core Metrics
+
+| Metric / Mechanism | Technical Specification | Engineering Implementation |
+|---|---|---|
+| **Concurrency & Double-Booking Guard** | **100% Race-Condition Free** | Redis atomic `SET hold:tenant:staff:slot token EX 600 NX` paired with PostgreSQL exclusion constraints (`EXCLUDE USING gist`) and transactional booking creation. |
+| **Slot Hold TTL Window** | **10 Minutes (600 Seconds)** | Redis key expiration automatically triggers slot release if the customer abandons checkout, restoring real-time slot availability. |
+| **Payment Verification** | **HMAC-SHA256 Cryptographic Verification** | Dual-tier payment capture: client-side signature hash check + idempotent server-side webhook receiver (`/api/v1/payments/webhook`). |
+| **Timezone & Schedule Engine** | **Asia/Kolkata (UTC+5:30) Standard** | Unified 12-Hour AM/PM time format (`09:00 AM – 07:00 PM`) powered by `date-fns-tz` across UI, emails, SMS, and database storage. |
+| **Automated Background Reminders** | **24-Hour & 1-Hour Schedule** | BullMQ worker scans upcoming confirmed appointments and dispatches transactional email & SMS reminders with idempotency logging. |
+| **Test Suite Coverage** | **72 Tests across 15 Suites (100% Pass Rate)** | Comprehensive Jest test coverage across auth, JWT, datetime, payments, staff recruitment, chat sockets, and notifications. |
+
+---
+
+## 🌟 Comprehensive Feature Catalog
+
+### 1. 🏢 Multi-Tenant SaaS Isolation
+* **Independent Tenant Spaces:** Businesses receive their own slug (e.g. `/business/radha-beauty-salon`) with dedicated branding, logo, contact details, currency, and timezone.
+* **Granular Business Rules:** Configurable lead times (e.g. 1 hour minimum notice), advance booking limits (e.g. 60 days max), cancellation cutoffs (e.g. 24 hours), and buffer minutes between appointments.
+* **Operating Hours & Holidays:** Day-of-week operating hours (`09:00 AM – 07:00 PM`) and recurring holiday blackout calendar.
+
+### 2. 🗓️ Smart Availability & Booking Wizard
+* **Real-Time Dynamic Slot Calculation:** Factors in staff availability, existing bookings, buffer times, and active Redis hold locks.
+* **Unified 12-Hour AM/PM UI:** Intuitive time displays across all customer and owner views.
+* **Staff Member Selection:** Customers can choose a specific specialist or opt for "Any Available Specialist".
+* **3-Step Clean Checkout Wizard:** Service selection ➔ Date & Time Slot ➔ Customer Info & Payment.
+
+### 3. 💳 100% Upfront Payments (Razorpay)
+* **Comprehensive Payment Methods:** Full support for UPI Apps (Google Pay, PhonePe, Paytm, BHIM), dynamic UPI QR code scanning, Netbanking, and Credit/Debit cards.
+* **Dual-Layer Verification:** Instant frontend HMAC signature verification + server-to-server webhook callback.
+* **Sandbox Simulation Mode:** Seamless testing support without active merchant credentials.
+
+### 4. 👤 Unified Customer "My Bookings" Portal
+* **Cross-Tenant Booking Management:** Customers view all their bookings across different salons and clinics in one unified dashboard (`/my-bookings`).
+* **Zero UUID Leakage:** Raw database UUIDs are replaced with clean, formatted date and service summaries for optimal user experience.
+* **Customer Self-Service Cancellation:** Cancel appointments directly within tenant-permitted cutoff windows.
+* **Integrated Consultation Chat:** One-click modal to chat directly with the specialist for any confirmed appointment.
+
+### 5. 💼 Two-Sided Staff Recruitment Pipeline
+* **Public Candidate Portal:** Prospective stylists, doctors, and specialists apply at `/business/:slug/apply-staff`.
+* **Owner Recruitment Hub:** Business owners review incoming candidate resumes, experience, role titles, and cover notes under `/dashboard/staff`.
+* **One-Click Hiring:** Owners can "Accept & Hire" candidates, which automatically provisions them as active staff members, assigns their eligible services, and triggers automated welcome emails.
+
+### 6. 💬 Dual Real-Time WebSocket Chat
+* **Visitor General Inquiries:** Prospective clients can ask questions directly on the business profile before booking.
+* **Customer Booking Consultations:** Booked customers can consult with their assigned specialist about styling, allergies, or timing.
+* **Owner Messages Hub (`/dashboard/chat`):** Split-panel interface with conversation search, unread badge counters, and real-time Socket.IO synchronization.
+
+### 7. 🔔 Multi-Profile Notification System
+* **Interactive Navbar Bell:** Unread badge counter (`nav-notif-badge`) with a dropdown showing the latest alerts.
+* **Smart Contextual Redirection:** Clicking a chat notification dynamically opens the conversation in the Owner Messages Hub or the Customer Consultation Modal.
+* **Actionable Notification Center (`/dashboard/notifications`):** Activity feed with quick "Reply in Chat" actions and complete email/SMS delivery audit logs.
+
+### 8. 📊 Business Intelligence & Analytics
+* **Key Performance Metrics:** Real-time calculation of Total Bookings, Confirmed Appointments, Cancellations, Cancellation Rate %, and Total Collected Revenue in INR (₹).
+* **Date Range Filtering:** Seamless toggling between 7-day, 30-day, and 90-day performance periods.
+* **Upcoming Appointment Agenda:** Live table with status badges and detail links (`/dashboard/bookings/:id`).
+
+### 9. 📚 Interactive Swagger API Docs & Legal Suite
+* **Full OpenAPI 3.0 Documentation:** Interactive documentation for all 10 API modules available at `/api/docs`.
+* **Public Legal Documents:** Standardized Terms of Service (`/terms`) and Privacy Policy (`/privacy`).
+
+---
+
+## 🛠️ Technology Stack Matrix
+
+| Layer | Technologies | Role in Platform |
+|---|---|---|
+| **Runtime & Server** | Node.js (v20+ LTS), Express.js | High-performance asynchronous backend and MVC server |
+| **Database & ORM** | Neon PostgreSQL, Prisma ORM 5.x | Serverless relational data store with pooling and schema migrations |
+| **Cache & Locking** | Redis 7.x (IoRedis) | In-memory atomic slot locking, TTL hold timers, and session caching |
+| **Real-Time Sockets** | Socket.IO 4.6+ | Bidirectional real-time notifications and multi-room chat messaging |
+| **Background Queues** | BullMQ | Redis-backed asynchronous queue for scheduled 24h & 1h reminder jobs |
+| **Payment Gateway** | Razorpay SDK | UPI, QR Code, Cards, Netbanking checkout and webhook verification |
+| **Frontend & UI** | EJS, express-ejs-layouts, Tailwind CSS | High-speed server-rendered views with responsive Tailwind styling |
+| **Authentication** | JWT, bcrypt, express-session, Passport.js | Dual-layer security (JWT for APIs + Sessions for SSR) and Google OAuth |
+| **Documentation** | Swagger UI Express, OpenAPI 3.0 | Centralized interactive API documentation (`/api/docs`) |
+| **Testing & CI/CD** | Jest, Supertest, Docker, GitHub Actions | 15 test suites (72 tests) with automated containerized CI pipeline |
+
+---
+
+## 🏢 Pre-Seeded Demonstration Businesses
+
+The platform includes seed data featuring 4 distinct industries and operational appointments:
+
+| Business Name | Category | Public Booking Page | Owner Login (`SecurePass@1`) |
 |---|---|---|---|
-| **Radha Beauty Salon** | Salon & Spa | [`/business/radha-beauty-salon`](http://localhost:3000/business/radha-beauty-salon) | `radha@salon.com` |
-| **Aura Dental Care & Clinic** | Dental & Healthcare | [`/business/aura-dental-clinic`](http://localhost:3000/business/aura-dental-clinic) | `dr.arun@auradental.com` |
-| **Zenith Physiotherapy & Rehab** | Physiotherapy & Fitness | [`/business/zenith-physio-rehab`](http://localhost:3000/business/zenith-physio-rehab) | `vikram@zenithphysio.com` |
-| **Urban Kings Men's Grooming** | Men's Salon & Grooming | [`/business/urban-kings-grooming`](http://localhost:3000/business/urban-kings-grooming) | `kabir@urbankings.com` |
+| **Radha Beauty Salon** | Salon & Spa | [`/business/radha-beauty-salon`](https://appointment-booking-3dz0.onrender.com/business/radha-beauty-salon) | `radha@salon.com` |
+| **Aura Dental Care & Clinic** | Dental & Healthcare | [`/business/aura-dental-clinic`](https://appointment-booking-3dz0.onrender.com/business/aura-dental-clinic) | `dr.arun@auradental.com` |
+| **Zenith Physiotherapy & Rehab** | Physiotherapy & Fitness | [`/business/zenith-physio-rehab`](https://appointment-booking-3dz0.onrender.com/business/zenith-physio-rehab) | `vikram@zenithphysio.com` |
+| **Urban Kings Men's Grooming** | Men's Salon & Grooming | [`/business/urban-kings-grooming`](https://appointment-booking-3dz0.onrender.com/business/urban-kings-grooming) | `kabir@urbankings.com` |
 
 ---
 
-## 🛠️ Technology Stack
-
-| Layer | Technologies |
-|---|---|
-| **Runtime & Framework** | Node.js (v18+), Express.js (CommonJS) |
-| **Database & ORM** | Neon Serverless PostgreSQL, Prisma ORM 5.x |
-| **Caching & Locking** | Redis 7.x (IoRedis) |
-| **Queues & Jobs** | BullMQ |
-| **Views & Frontend** | EJS, express-ejs-layouts, Tailwind CSS (CDN) |
-| **Auth & Security** | JWT (jsonwebtoken), bcrypt, express-session, helmet, rate-limit |
-| **File Processing** | Multer (memory storage), Sharp (image optimization) |
-| **API Docs** | Swagger OpenAPI 3.0 (`/api/docs`) |
-| **Testing** | Jest, Supertest (31 unit & E2E tests) |
-
----
-
-## 🚀 Local Development Setup
+## 🚀 Quickstart & Local Setup
 
 ### 1. Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for Redis, Kafka, and MailHog)
-- [Neon Database Account](https://neon.tech/) (or local PostgreSQL)
+* [Node.js](https://nodejs.org/) (v18 or v20 LTS)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for Redis and optional MailHog)
+* PostgreSQL database instance (local or free cloud tier on [Neon.tech](https://neon.tech/))
 
-### 2. Clone & Install
+### 2. Clone Repository & Install Dependencies
 ```bash
 git clone https://github.com/Ravi-667/Appointment-Booking.git
 cd Appointment-Booking
@@ -106,174 +215,141 @@ npm install
 ```
 
 ### 3. Configure Environment Variables
-Create a `.env` file in the root directory (based on `.env.example`):
+Copy `.env.example` to create your local `.env`:
 ```env
 PORT=3000
 NODE_ENV=development
 
-# JWT Secrets
-JWT_ACCESS_SECRET=your-64-byte-hex-access-secret
-JWT_REFRESH_SECRET=your-64-byte-hex-refresh-secret
+# Authentication Secrets
+JWT_ACCESS_SECRET=your-64-char-hex-access-secret
+JWT_REFRESH_SECRET=your-64-char-hex-refresh-secret
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
-# Database (Neon PostgreSQL connection)
-DATABASE_URL="postgresql://neondb_owner:<password>@ep-xxxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
-DIRECT_URL="postgresql://neondb_owner:<password>@ep-xxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+# Google OAuth (Optional for local test)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
 
-# Redis
+# Database Connection (Neon or local Postgres)
+DATABASE_URL="postgresql://user:pass@localhost:5432/booking_dev?sslmode=prefer"
+DIRECT_URL="postgresql://user:pass@localhost:5432/booking_dev?sslmode=prefer"
+
+# Redis Cache & Locks
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
-# Kafka (optional for local event logging)
-KAFKA_BROKERS=localhost:9092
-
-# Email (Mailhog local SMTP)
+# Email & SMS (Local MailHog / Twilio)
 SMTP_HOST=localhost
 SMTP_PORT=1025
 EMAIL_FROM=noreply@bookingapp.local
 
-# Payment Gateway (Razorpay mock/test)
+# Razorpay Test Credentials
 RAZORPAY_KEY_ID=rzp_test_placeholder
 RAZORPAY_KEY_SECRET=placeholder
 RAZORPAY_WEBHOOK_SECRET=placeholder
 ```
 
 ### 4. Start Infrastructure Containers
-Start Redis, Kafka, and MailHog via Docker:
 ```bash
-docker compose up -d redis kafka zookeeper mailhog
+docker compose up -d redis mailhog
 ```
 
-### 5. Initialize Database & Seed
+### 5. Push Schema & Seed Initial Data
 ```bash
-# Push schema to PostgreSQL (Neon)
+# Push schema to database
 npx prisma db push
 
-# Seed 4 business platforms, staff, services & bookings
+# Populate 4 diverse businesses, staff, services & active appointments
 node prisma/seed.js
 ```
 
-### 6. Start Application
+### 6. Launch Application
 ```bash
+# Development mode with hot-reloading
 npm run dev
+
+# Or production start
+npm start
 ```
 Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
-## 🧪 Running Automated Tests
+## 🧪 Automated Testing Suite
 
-The test suite covers unit logic, middlewares, authentication, and end-to-end API flows:
+The application includes unit tests and end-to-end integration test suites:
 
 ```bash
 npm test
 ```
 
-**Results**: All 12 test suites (31 tests) pass with exit code 0:
-- `validate.middleware.test.js`
-- `datetime.utils.test.js` (12-hour AM/PM format validation)
-- `jwt.utils.test.js`
-- `audit.service.test.js`
-- `notifications.service.test.js`
-- `sms.test.js`
-- `auth.service.test.js`
-- `availability.service.test.js`
-- `health.test.js`
-- `uploads.test.js`
-- `lookup.test.js`
-- `change-password.test.js`
+### Test Suite Summary:
+```text
+Test Suites: 15 passed, 15 total
+Tests:       72 passed, 72 total
+Snapshots:   0 total
+Time:        5.793 s
+```
 
----
-
-## 🌐 Complete Deployment Guide
-
-### Where Should You Deploy This App?
-Because this project uses **Node.js + Express + Neon (Cloud PostgreSQL) + Redis**:
-
-| Platform | Best For | Complexity | Free/Low Cost Tier |
-|---|---|:---:|:---:|
-| **[Render.com](https://render.com/)** *(Recommended)* | Web Service + Redis + Auto Deploy from GitHub | ⭐ (Easiest) | ✅ Yes |
-| **[Railway.app](https://railway.app/)** | 1-Click deploy with integrated Redis plugin | ⭐ (Very Easy) | ✅ $5 credit |
-| **[VPS (DigitalOcean / AWS EC2)](https://www.digitalocean.com/)** | Full control using `Dockerfile` & `docker-compose.yml` | ⭐⭐⭐ (DevOps) | $4–$6/mo |
-
----
-
-### Step-by-Step Deployment on **Render.com** (Recommended)
-
-#### Step 1: Create a Managed Redis Instance on Render
-1. Sign up / Log in to [Render.com](https://dashboard.render.com/).
-2. Click **New +** ➔ **Redis**.
-3. Name: `booking-redis` ➔ Plan: **Free**.
-4. Click **Create Redis**.
-5. Copy the **Internal Redis URL** (e.g. `rediss://default:xxxx@red-xxxx:6379`).
-
-#### Step 2: Deploy the Web Service on Render
-1. In Render Dashboard, click **New +** ➔ **Web Service**.
-2. Connect your GitHub repository: `Ravi-667/Appointment-Booking`.
-3. Configure the settings:
-   - **Name**: `appointment-booking`
-   - **Environment**: `Node`
-   - **Build Command**: `npm install && npx prisma generate && npx prisma db push`
-   - **Start Command**: `npm start`
-   - **Plan**: `Free`
-
-#### Step 3: Add Environment Variables in Render
-In the **Environment Variables** tab of your Render service, add:
-
-| Key | Value |
-|---|---|
-| `NODE_ENV` | `production` |
-| `DATABASE_URL` | *Your Neon pooled connection string* |
-| `DIRECT_URL` | *Your Neon direct connection string* |
-| `REDIS_HOST` | *The host from your Render Redis instance* |
-| `REDIS_PORT` | `6379` |
-| `JWT_ACCESS_SECRET` | *Any strong random 64-char string* |
-| `JWT_REFRESH_SECRET` | *Any strong random 64-char string* |
-| `EMAIL_FROM` | `noreply@yourdomain.com` |
-
-Click **Save Changes**. Render will automatically build, apply database migrations, and deploy your app live with a public HTTPS URL (e.g., `https://appointment-booking.onrender.com`)!
-
----
-
-### Alternative: Deploy on **Railway.app**
-
-1. Go to [Railway.app](https://railway.app/) and click **New Project** ➔ **Deploy from GitHub repo**.
-2. Select `Appointment-Booking`.
-3. Click **Add a Service** ➔ **Database** ➔ **Redis**.
-4. In your Web Service **Variables**, add:
-   - `DATABASE_URL`: *Your Neon connection string*
-   - `DIRECT_URL`: *Your Neon direct connection string*
-   - `REDIS_HOST`: `${{Redis.REDISHOST}}`
-   - `REDIS_PORT`: `${{Redis.REDISPORT}}`
-   - `JWT_ACCESS_SECRET` & `JWT_REFRESH_SECRET`
-5. Railway will automatically provision a domain and start your application.
+Key verified test suites:
+* `staff.service.test.js`: Staff application submission, vetting & hiring pipeline.
+* `notifications.service.test.js`: In-app notification creation, unread counts, Socket.IO rooms, and role-aware smart redirect links.
+* `chat.service.test.js`: Thread resolution (`booking_` vs `inquiry_`), message dispatch, and socket room broadcasts.
+* `payments.service.test.js`: Razorpay order creation, UPI simulation, and HMAC verification.
+* `availability.service.test.js`: Buffer times, lead times, holidays, and 12-hour AM/PM slot generation.
+* `datetime.utils.test.js`: 12-hour AM/PM schedule formatters.
+* `lookup.test.js`: Multi-tenant customer booking retrieval and UUID hiding.
+* `auth.service.test.js`: Registration, login, password reset, and JWT issuance.
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-├── .github/workflows/ci.yml       # Automated GitHub Actions CI pipeline
-├── docker/                        # Production Dockerfiles (Dockerfile.api)
+├── .github/workflows/ci.yml       # GitHub Actions CI/CD Pipeline
+├── docker/
+│   └── Dockerfile.api             # Multi-stage production container build
 ├── docker-compose.yml             # Local service orchestration (Redis, Kafka, MailHog)
+├── docs/
+│   └── screenshots/               # High-resolution website workflow screenshots
 ├── prisma/
-│   ├── schema.prisma              # Database models with Neon pooling & directUrl
-│   └── seed.js                    # Multi-tenant comprehensive random seeder
+│   ├── schema.prisma              # Database models, pooling setup & directUrl
+│   └── seed.js                    # Multi-tenant comprehensive seeder
 ├── src/
-│   ├── index.js                   # Application bootstrap & BullMQ recurring worker
-│   ├── app.js                     # Express app setup, middlewares, EJS locals
-│   ├── middlewares/               # JWT auth, tenant scope, validation, error handler
-│   ├── routes/                    # API v1 endpoints + EJS view page routes
-│   ├── services/                  # Business logic (Auth, Bookings, Availability, Audit)
-│   ├── utils/                     # Prisma client, JWT, Kafka, 12-hour Datetime utils
-│   └── views/                     # EJS UI templates (Public, Auth, Dashboard partials)
-├── test/                          # Unit and End-to-End Jest tests (12 suites, 31 tests)
+│   ├── index.js                   # Application bootstrap, Socket.IO & BullMQ workers
+│   ├── app.js                     # Express app, middleware pipeline, EJS locals & Swagger
+│   ├── middlewares/               # JWT auth, tenant isolation, Zod validation, error handlers
+│   ├── routes/                    # API v1 routes & EJS view controllers
+│   ├── services/                  # Business services (Auth, Bookings, Availability, Staff, Chat, Notifications)
+│   ├── utils/                     # Prisma client, JWT, Redis client, Swagger spec, Datetime utils
+│   └── views/                     # EJS UI templates (Public, Auth, Dashboard, Partials)
+├── test/                          # 15 automated Jest test suites (72 tests)
 ├── nodemon.json                   # Hot-reload configuration tracking src, prisma & .env
 └── package.json                   # Dependencies, scripts, and project metadata
 ```
 
 ---
 
+## 🌐 Production Deployment
+
+### 1. Render.com Deployment (Recommended)
+1. Fork or push this repository to GitHub.
+2. In [Render.com](https://dashboard.render.com/):
+   * Create a **Redis instance** (Free Tier).
+   * Create a **Web Service** linked to your repository.
+   * **Build Command:** `npm install && npx prisma generate && npx prisma db push`
+   * **Start Command:** `npm start`
+   * Add required environment variables (`DATABASE_URL`, `DIRECT_URL`, `REDIS_HOST`, `REDIS_PORT`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`).
+3. Render automatically runs the build and deploys with free managed SSL.
+
+### 2. Docker Deployment
+```bash
+docker build -f docker/Dockerfile.api -t booking-app-api:latest .
+docker run -p 3000:3000 --env-file .env booking-app-api:latest
+```
+
+---
+
 ## 📄 License
-This project is open-source and available under the [MIT License](LICENSE).
+This project is open-source software licensed under the [MIT License](LICENSE).
