@@ -7,7 +7,7 @@
 [![Redis](https://img.shields.io/badge/Redis-7.x-red.svg)](https://redis.io/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-black.svg)](https://socket.io/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.x-38bdf8.svg)](https://tailwindcss.com/)
-[![Jest Tests](https://img.shields.io/badge/Jest%20Tests-72%20Passed%20(100%25)-brightgreen.svg)]()
+[![Jest Tests](https://img.shields.io/badge/Jest%20Tests-76%20Passed%20(100%25)-brightgreen.svg)]()
 [![Swagger](https://img.shields.io/badge/OpenAPI%203.0-Swagger%20UI-85EA2D.svg)](https://appointment-booking-3dz0.onrender.com/api/docs)
 [![CI/CD](https://img.shields.io/badge/GitHub%20Actions-CI%20Passing-success.svg)]()
 [![Live on Render](https://img.shields.io/badge/Live%20Demo-Render.com-46E3B7.svg)](https://appointment-booking-3dz0.onrender.com)
@@ -116,7 +116,7 @@ graph TD
 | **Payment Verification** | **HMAC-SHA256 Cryptographic Verification** | Dual-tier payment capture: client-side signature hash check + idempotent server-side webhook receiver (`/api/v1/payments/webhook`). |
 | **Timezone & Schedule Engine** | **Asia/Kolkata (UTC+5:30) Standard** | Unified 12-Hour AM/PM time format (`09:00 AM – 07:00 PM`) powered by `date-fns-tz` across UI, emails, SMS, and database storage. |
 | **Automated Background Reminders** | **24-Hour & 1-Hour Schedule** | BullMQ worker scans upcoming confirmed appointments and dispatches transactional email & SMS reminders with idempotency logging. |
-| **Test Suite Coverage** | **72 Tests across 15 Suites (100% Pass Rate)** | Comprehensive Jest test coverage across auth, JWT, datetime, payments, staff recruitment, chat sockets, and notifications. |
+| **Test Suite Coverage** | **76 Tests across 16 Suites (100% Pass Rate)** | Comprehensive Jest test coverage across auth, JWT, datetime, payments, staff recruitment, staff portal, chat sockets, and notifications. |
 
 ---
 
@@ -144,27 +144,40 @@ graph TD
 * **Customer Self-Service Cancellation:** Cancel appointments directly within tenant-permitted cutoff windows.
 * **Integrated Consultation Chat:** One-click modal to chat directly with the specialist for any confirmed appointment.
 
-### 5. 💼 Two-Sided Staff Recruitment Pipeline
+### 5. 💼 Two-Sided Staff Recruitment Pipeline & Onboarding
 * **Public Candidate Portal:** Prospective stylists, doctors, and specialists apply at `/business/:slug/apply-staff`.
 * **Owner Recruitment Hub:** Business owners review incoming candidate resumes, experience, role titles, and cover notes under `/dashboard/staff`.
-* **One-Click Hiring:** Owners can "Accept & Hire" candidates, which automatically provisions them as active staff members, assigns their eligible services, and triggers automated welcome emails.
+* **One-Click Hiring & Auto-Provisioning:** Owners can "Accept & Hire" candidates, which automatically provisions them as active staff members, assigns their eligible services, generates temporary login credentials, and sends welcome emails.
 
-### 6. 💬 Dual Real-Time WebSocket Chat
-* **Visitor General Inquiries:** Prospective clients can ask questions directly on the business profile before booking.
-* **Customer Booking Consultations:** Booked customers can consult with their assigned specialist about styling, allergies, or timing.
-* **Owner Messages Hub (`/dashboard/chat`):** Split-panel interface with conversation search, unread badge counters, and real-time Socket.IO synchronization.
+### 6. 🧑‍💼 Dedicated Staff Member Portal & Credentials System
+* **Login-Only Security Architecture:** Public registration for role `STAFF` is strictly prohibited. Staff accounts can only be provisioned by authorized business owners or generated via candidate hiring.
+* **Scoped Specialist Dashboard (`/staff/dashboard`):** Staff members log in at `/login` and are automatically routed to their personal workspace with 4 focused tabs:
+  * **My Appointments:** Filtered agenda displaying only sessions assigned to that specialist (`Today's Sessions`, `Upcoming Appointments`, and `Past & Completed`) with live status updates.
+  * **Direct Client Consultation Chat:** Instant one-click consultation chat modal with customers for assigned bookings.
+  * **My Schedule & Overrides:** View weekly working hours, request leaves/days off, and submit date-specific custom schedule overrides (`/staff/schedule/override`).
+  * **Team Chat with Owner:** Dedicated real-time communication channel connecting the specialist directly with their business owner.
+  * **Profile & Security:** Specialist bio, services qualified for, and password updates.
+* **Dual-Channel Credential Provisioning:** Business owners can provision existing staff or new hires at any time from `/dashboard/staff` using the "Give Login Access" modal. Credentials (login URL, email, and temporary password) are securely dispatched across two synchronized channels:
+  1. **Official Branded Email:** Formatted welcome email with direct sign-in link and temporary password.
+  2. **In-App Team Chat:** Initial credentials message automatically posted into the private Owner-Staff chat thread for immediate in-portal retrieval.
 
-### 7. 🔔 Multi-Profile Notification System
+### 7. 💬 Triple-Channel Real-Time WebSocket Chat
+* **Visitor General Inquiries:** Prospective clients can ask questions directly on the business profile before booking (`inquiry_<sessionId>`).
+* **Customer Booking Consultations:** Booked customers can consult with their assigned specialist about styling, allergies, or timing (`booking_<bookingId>`).
+* **Owner <-> Staff Team Chat:** Private internal team communication channel between the business owner and their team specialists (`staff_<staffId>`).
+* **Owner Messages Hub (`/dashboard/chat`):** Unified 3-tab interface (*General Inquiries*, *Booking Chats*, and *Staff Team*) with conversation search, unread badge counters, and real-time Socket.IO synchronization.
+
+### 8. 🔔 Multi-Profile Notification System
 * **Interactive Navbar Bell:** Unread badge counter (`nav-notif-badge`) with a dropdown showing the latest alerts.
-* **Smart Contextual Redirection:** Clicking a chat notification dynamically opens the conversation in the Owner Messages Hub or the Customer Consultation Modal.
+* **Smart Contextual Redirection:** Clicking a chat notification dynamically opens the conversation in the Owner Messages Hub, Staff Portal, or Customer Consultation Modal.
 * **Actionable Notification Center (`/dashboard/notifications`):** Activity feed with quick "Reply in Chat" actions and complete email/SMS delivery audit logs.
 
-### 8. 📊 Business Intelligence & Analytics
+### 9. 📊 Business Intelligence & Analytics
 * **Key Performance Metrics:** Real-time calculation of Total Bookings, Confirmed Appointments, Cancellations, Cancellation Rate %, and Total Collected Revenue in INR (₹).
 * **Date Range Filtering:** Seamless toggling between 7-day, 30-day, and 90-day performance periods.
 * **Upcoming Appointment Agenda:** Live table with status badges and detail links (`/dashboard/bookings/:id`).
 
-### 9. 📚 Interactive Swagger API Docs & Legal Suite
+### 10. 📚 Interactive Swagger API Docs & Legal Suite
 * **Full OpenAPI 3.0 Documentation:** Interactive documentation for all 10 API modules available at `/api/docs`.
 * **Public Legal Documents:** Standardized Terms of Service (`/terms`) and Privacy Policy (`/privacy`).
 
@@ -183,7 +196,7 @@ graph TD
 | **Frontend & UI** | EJS, express-ejs-layouts, Tailwind CSS | High-speed server-rendered views with responsive Tailwind styling |
 | **Authentication** | JWT, bcrypt, express-session, Passport.js | Dual-layer security (JWT for APIs + Sessions for SSR) and Google OAuth |
 | **Documentation** | Swagger UI Express, OpenAPI 3.0 | Centralized interactive API documentation (`/api/docs`) |
-| **Testing & CI/CD** | Jest, Supertest, Docker, GitHub Actions | 15 test suites (72 tests) with automated containerized CI pipeline |
+| **Testing & CI/CD** | Jest, Supertest, Docker, GitHub Actions | 16 test suites (76 tests) with automated containerized CI pipeline |
 
 ---
 
@@ -286,16 +299,17 @@ npm test
 
 ### Test Suite Summary:
 ```text
-Test Suites: 15 passed, 15 total
-Tests:       72 passed, 72 total
+Test Suites: 16 passed, 16 total
+Tests:       76 passed, 76 total
 Snapshots:   0 total
-Time:        5.793 s
+Time:        6.336 s
 ```
 
 Key verified test suites:
+* `staff-portal.test.js`: Scoped dashboard access, public staff registration restriction, credentials provisioning (Email + Team Chat), and real-time messaging.
 * `staff.service.test.js`: Staff application submission, vetting & hiring pipeline.
 * `notifications.service.test.js`: In-app notification creation, unread counts, Socket.IO rooms, and role-aware smart redirect links.
-* `chat.service.test.js`: Thread resolution (`booking_` vs `inquiry_`), message dispatch, and socket room broadcasts.
+* `chat.service.test.js`: Thread resolution (`booking_`, `inquiry_`, `staff_`), message dispatch, and socket room broadcasts.
 * `payments.service.test.js`: Razorpay order creation, UPI simulation, and HMAC verification.
 * `availability.service.test.js`: Buffer times, lead times, holidays, and 12-hour AM/PM slot generation.
 * `datetime.utils.test.js`: 12-hour AM/PM schedule formatters.
@@ -324,7 +338,7 @@ Key verified test suites:
 │   ├── services/                  # Business services (Auth, Bookings, Availability, Staff, Chat, Notifications)
 │   ├── utils/                     # Prisma client, JWT, Redis client, Swagger spec, Datetime utils
 │   └── views/                     # EJS UI templates (Public, Auth, Dashboard, Partials)
-├── test/                          # 15 automated Jest test suites (72 tests)
+├── test/                          # 16 automated Jest test suites (76 tests)
 ├── nodemon.json                   # Hot-reload configuration tracking src, prisma & .env
 └── package.json                   # Dependencies, scripts, and project metadata
 ```
