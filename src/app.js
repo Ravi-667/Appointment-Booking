@@ -90,16 +90,10 @@ app.use((req, res, next) => {
 app.use(globalLimiter);
 
 // ─── Swagger ────────────────────────────────────────────────────────────────
-const swaggerSpec = swaggerJsdoc({
-  definition: {
-    openapi: "3.0.0",
-    info: { title: "Appointment Booking API", version: "1.0.0", description: "Production-grade booking platform" },
-    servers: [{ url: "/api/v1" }],
-    components: { securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } } },
-  },
-  apis: ["./src/routes/*.js"],
-});
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const swaggerSpec = require("./utils/swagger.doc");
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: "Appointment Booking API Documentation",
+}));
 
 // ─── Health ─────────────────────────────────────────────────────────────────
 app.get("/api/v1/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));

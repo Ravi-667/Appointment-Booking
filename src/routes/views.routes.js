@@ -55,6 +55,20 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ─── LEGAL & PUBLIC INFO PAGES ──────────────────────────────────────────────
+
+router.get("/terms", (req, res) => {
+  res.render("public/terms", { title: "Terms of Service" });
+});
+
+router.get("/privacy", (req, res) => {
+  res.render("public/privacy", { title: "Privacy Policy" });
+});
+
+router.get("/api-docs", (req, res) => {
+  res.redirect("/api/docs");
+});
+
 // ─── AUTH PAGES ─────────────────────────────────────────────────────────────
 
 router.get("/login", (req, res) => {
