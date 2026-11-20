@@ -1,52 +1,232 @@
 <!-- Customer booking lookup -->
-<div class="max-w-lg mx-auto px-4 py-12">
-  <div class="bg-white rounded-2xl shadow-lg p-8">
+<div class="max-w-xl mx-auto px-4 py-12">
+  <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
     <h1 class="text-2xl font-bold text-gray-900 text-center mb-2">Track Your Booking</h1>
-    <p class="text-gray-500 text-center mb-6">Enter your booking ID and email to look up your appointment.</p>
+    <p class="text-gray-500 text-center mb-6 text-sm">Enter your booking ID and email to look up your appointment details and chat with the business owner.</p>
+    
     <form id="lookup-form" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Booking ID</label>
-        <input type="text" id="lookup-id" required placeholder="e.g. a1b2c3d4-..."
-          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+        <input type="text" id="lookup-id" required placeholder="e.g. f93034b0-941c-49a3-8a4f-19952c784cf0"
+          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
         <input type="email" id="lookup-email" required placeholder="Your email used during booking"
-          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm">
       </div>
-      <button type="submit" class="w-full py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition">
+      <button type="submit" id="lookup-submit-btn" class="w-full py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 active:bg-primary-800 transition shadow-sm cursor-pointer">
         Look Up Booking
       </button>
     </form>
+    
     <div id="lookup-result" class="mt-6 hidden"></div>
   </div>
 </div>
+
+<script src="https://cdn.socket.io/4.6.2/socket.io.min.js"></script>
 <script>
+  var socket = null;
+  var currentBooking = null;
+
+  function copyBookingId(btn, text) {
+    navigator.clipboard.writeText(text).then(function() {
+      var orig = btn.innerHTML;
+      btn.innerHTML = '<span class="text-emerald-600 font-bold">✓ Copied</span>';
+      setTimeout(function() { btn.innerHTML = orig; }, 2000);
+    }).catch(function() {
+      alert('Copied ID: ' + text);
+    });
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  function formatTime(iso) {
+    try {
+      var d = new Date(iso);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch(e) { return ''; }
+  }
+
+  async function loadBookingMessages(bookingId, container) {
+    try {
+      var res = await fetch('/api/v1/chat/messages?bookingId=' + encodeURIComponent(bookingId));
+      if (!res.ok) return;
+      var data = await res.json();
+      var messages = data.messages || [];
+
+      if (messages.length === 0) {
+        container.innerHTML = '<div class="text-center py-6 text-gray-400 text-xs">' +
+          '<svg class="w-8 h-8 mx-auto mb-1.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' +
+          'Have questions or need to inform the specialist? Send a message below!' +
+          '</div>';
+        return;
+      }
+
+      var html = '';
+      messages.forEach(function(m) {
+        var isMe = (m.senderType === 'CUSTOMER' || m.senderType === 'VISITOR');
+        html += '<div class="flex flex-col ' + (isMe ? 'items-end' : 'items-start') + '">';
+        html += '<div class="flex items-center gap-1.5 mb-1 text-[10px] text-gray-400">';
+        html += '<span class="font-semibold text-gray-700">' + (isMe ? 'You' : (m.senderName || 'Business Owner')) + '</span>';
+        html += '<span>• ' + formatTime(m.createdAt) + '</span>';
+        html += '</div>';
+        html += '<div class="max-w-[82%] px-3.5 py-2 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ' +
+          (isMe ? 'bg-primary-600 text-white rounded-tr-xs' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-xs') + '">';
+        html += escapeHtml(m.message);
+        html += '</div>';
+        html += '</div>';
+      });
+
+      container.innerHTML = html;
+      container.scrollTop = container.scrollHeight;
+    } catch(e) {}
+  }
+
   document.getElementById('lookup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('lookup-id').value.trim();
     const email = document.getElementById('lookup-email').value.trim();
     const container = document.getElementById('lookup-result');
-    container.innerHTML = '<p class="text-gray-400">Searching...</p>';
+    container.innerHTML = '<div class="p-6 text-center text-gray-400 text-sm"><svg class="w-6 h-6 mx-auto mb-2 text-primary-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Searching appointment...</div>';
     container.classList.remove('hidden');
+
     try {
-      const res = await fetch(`/api/v1/bookings/lookup?id=${id}&email=${encodeURIComponent(email)}`);
-      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      const res = await fetch(`/api/v1/bookings/lookup?id=${encodeURIComponent(id)}&email=${encodeURIComponent(email)}`);
+      if (!res.ok) { const errObj = await res.json(); throw new Error(errObj.message || 'Booking not found'); }
       const b = await res.json();
+      currentBooking = b;
       const start = new Date(b.startTime);
-      const statusColors = { CONFIRMED: 'green', PENDING_PAYMENT: 'yellow', CANCELLED: 'red', RESCHEDULED: 'blue' };
+      const statusColors = { CONFIRMED: 'emerald', PENDING_PAYMENT: 'amber', CANCELLED: 'red', RESCHEDULED: 'blue', NO_SHOW: 'orange' };
       const color = statusColors[b.status] || 'gray';
+      const threadId = 'booking_' + b.id;
+
       container.innerHTML = `
-        <div class="p-4 bg-gray-50 rounded-lg space-y-2 text-sm">
-          <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-${color}-100 text-${color}-800">${b.status}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Service</span><span class="font-medium">${b.service?.name || '-'}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium">${start.toLocaleDateString('en-IN', { weekday:'short', year:'numeric', month:'short', day:'numeric' })}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Time</span><span class="font-medium">${start.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true })}</span></div>
-          ${b.staff ? '<div class="flex justify-between"><span class="text-gray-500">Staff</span><span class="font-medium">' + b.staff.name + '</span></div>' : ''}
-          <div class="flex justify-between"><span class="text-gray-500">Amount</span><span class="font-medium">₹${Number(b.price).toLocaleString()}</span></div>
-        </div>`;
+        <div class="space-y-4">
+          <!-- Booking details card -->
+          <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl space-y-3 text-sm">
+            <div class="flex justify-between items-center pb-2 border-b border-gray-200">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Booking ID</span>
+              <div class="flex items-center gap-1.5">
+                <code class="text-xs bg-white px-2 py-0.5 rounded border border-gray-200 font-mono text-gray-800">${b.id}</code>
+                <button type="button" onclick="copyBookingId(this, '${b.id}')"
+                  class="px-2 py-0.5 text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded border border-primary-200 transition cursor-pointer">
+                  Copy
+                </button>
+              </div>
+            </div>
+            <div class="flex justify-between items-center"><span class="text-gray-500">Status</span><span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-${color}-100 text-${color}-800">${b.status}</span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-500">Service</span><span class="font-semibold text-gray-900">${b.service?.name || '-'}</span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-500">Date</span><span class="font-medium text-gray-900">${start.toLocaleDateString('en-IN', { weekday:'short', year:'numeric', month:'short', day:'numeric' })}</span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-500">Time</span><span class="font-medium text-gray-900">${start.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true })}</span></div>
+            ${b.staff ? '<div class="flex justify-between items-center"><span class="text-gray-500">Staff Specialist</span><span class="font-medium text-gray-900">' + b.staff.name + '</span></div>' : ''}
+            <div class="flex justify-between items-center pt-2 border-t border-gray-200"><span class="text-gray-500">Amount Paid</span><span class="font-bold text-gray-900 text-base">₹${Number(b.price).toLocaleString()}</span></div>
+          </div>
+
+          <!-- Direct Appointment Consultation Chat Card -->
+          <div class="border border-primary-200 rounded-xl bg-white shadow-xs overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-3 text-white flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                <span class="font-bold text-sm">Chat Regarding this Appointment</span>
+              </div>
+              <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-medium">Direct with Owner</span>
+            </div>
+
+            <!-- Messages stream -->
+            <div id="booking-chat-stream" class="p-4 h-64 overflow-y-auto space-y-3 bg-gray-50/50">
+              <div class="text-center py-6 text-gray-400 text-xs">Loading messages...</div>
+            </div>
+
+            <!-- Composer form -->
+            <form id="booking-customer-chat-form" class="p-3 bg-white border-t border-gray-200 flex items-center gap-2">
+              <input type="text" id="booking-customer-chat-input"
+                placeholder="Ask a question or update your arrival time..."
+                class="flex-1 px-3.5 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
+                autocomplete="off">
+              <button type="submit" id="booking-customer-send-btn"
+                class="px-4 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-xs font-semibold rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer disabled:opacity-50">
+                <span>Send</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      `;
+
+      var streamContainer = document.getElementById('booking-chat-stream');
+      var chatForm = document.getElementById('booking-customer-chat-form');
+      var chatInput = document.getElementById('booking-customer-chat-input');
+      var chatSendBtn = document.getElementById('booking-customer-send-btn');
+
+      loadBookingMessages(b.id, streamContainer);
+
+      // Join socket room
+      try {
+        if (!socket) socket = io();
+        socket.emit('join:thread', threadId);
+        socket.on('chat:message', function(msg) {
+          if (msg.threadId === threadId) {
+            loadBookingMessages(b.id, streamContainer);
+          }
+        });
+      } catch(e) {}
+
+      // Handle message submission
+      chatForm.addEventListener('submit', async function(ev) {
+        ev.preventDefault();
+        var txt = chatInput.value.trim();
+        if (!txt) return;
+
+        chatSendBtn.disabled = true;
+        chatInput.value = '';
+
+        try {
+          var res = await fetch('/api/v1/chat/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookingId: b.id,
+              tenantId: b.tenantId,
+              senderName: b.customerName,
+              senderEmail: b.customerEmail,
+              senderType: 'CUSTOMER',
+              message: txt
+            })
+          });
+
+          if (!res.ok) {
+            var errD = await res.json();
+            throw new Error(errD.message || 'Failed to send');
+          }
+
+          loadBookingMessages(b.id, streamContainer);
+        } catch(err) {
+          alert('Could not send message: ' + err.message);
+        } finally {
+          chatSendBtn.disabled = false;
+          chatInput.focus();
+        }
+      });
+
     } catch (err) {
-      container.innerHTML = '<p class="text-red-500 text-sm">' + (err.message || 'Booking not found.') + '</p>';
+      container.innerHTML = '<div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium">' + (err.message || 'Booking not found.') + '</div>';
     }
   });
+
+  // Auto-fill from query params if present (e.g. redirected from booking confirmation)
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var idParam = params.get('id');
+    var emailParam = params.get('email');
+    if (idParam) document.getElementById('lookup-id').value = idParam;
+    if (emailParam) document.getElementById('lookup-email').value = emailParam;
+    if (idParam && emailParam) {
+      document.getElementById('lookup-form').dispatchEvent(new Event('submit'));
+    }
+  })();
 </script>

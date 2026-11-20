@@ -92,7 +92,7 @@
     </div>
 
     <!-- ── Quick Actions bar ───────────────────────────────── -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <a href="/dashboard/bookings"
         class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3 hover:border-primary-300 hover:shadow-sm transition group">
         <div class="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center group-hover:bg-primary-100 transition flex-shrink-0">
@@ -101,6 +101,17 @@
         <div>
           <p class="text-sm font-semibold text-gray-800 group-hover:text-primary-700">All Bookings</p>
           <p class="text-xs text-gray-400">View & manage</p>
+        </div>
+      </a>
+      <a href="/dashboard/chat"
+        class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3 hover:border-blue-300 hover:shadow-sm transition group">
+        <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition flex-shrink-0 relative">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+          <span id="quick-action-chat-badge" class="hidden absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-gray-800 group-hover:text-blue-700">Messages</p>
+          <p class="text-xs text-gray-400">Chats & inquiries</p>
         </div>
       </a>
       <a href="/dashboard/calendar"

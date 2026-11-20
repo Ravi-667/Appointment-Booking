@@ -49,6 +49,12 @@
               </td>
               <td class="px-4 py-3 text-sm font-medium text-gray-900">₹<%= Number(b.price).toLocaleString() %></td>
               <td class="px-4 py-3 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                <a href="/dashboard/chat?threadId=booking_<%= b.id %>"
+                   class="inline-flex items-center px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition mr-1.5 shadow-xs"
+                   title="Open Chat with <%= b.customerName %>">
+                  <svg class="w-3.5 h-3.5 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                  <span>Chat</span>
+                </a>
                 <a href="/dashboard/bookings/<%= b.id %>"
                    class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded-lg shadow-sm transition">
                   <span>View</span>

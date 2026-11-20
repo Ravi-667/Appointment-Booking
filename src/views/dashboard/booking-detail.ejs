@@ -120,5 +120,171 @@
       })();
     </script>
     <% } %>
+    <!-- ── Customer Appointment Consultation Chat ────────────── -->
+    <div class="px-8 py-6 border-t border-gray-200 bg-gray-50/60">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+            <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            Customer Consultation Chat
+          </h3>
+          <p class="text-xs text-gray-500 mt-0.5">Direct appointment communication with <%= booking.customerName %></p>
+        </div>
+        <a href="/dashboard/chat?threadId=booking_<%= booking.id %>"
+          class="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-primary-200 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-primary-50 transition flex items-center gap-1">
+          <span>Open in Messages Hub</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-200 shadow-xs flex flex-col h-[380px] overflow-hidden">
+        <!-- Message stream -->
+        <div id="booking-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50/50">
+          <div class="text-center py-6 text-gray-400 text-xs">
+            <svg class="w-8 h-8 mx-auto mb-2 text-gray-300 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+            Loading consultation history...
+          </div>
+        </div>
+
+        <!-- Input box -->
+        <form id="booking-chat-form" class="p-3 bg-white border-t border-gray-200 flex items-center gap-2">
+          <input type="text" id="booking-chat-input"
+            placeholder="Type a message to <%= booking.customerName %>..."
+            class="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-gray-50/50 focus:bg-white transition"
+            autocomplete="off">
+          <button type="submit" id="booking-chat-send-btn"
+            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50">
+            <span>Send</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.6.2/socket.io.min.js"></script>
+    <script>
+      (function() {
+        var bookingId = "<%= booking.id %>";
+        var threadId = "booking_" + bookingId;
+        var customerEmail = "<%= booking.customerEmail %>";
+        var customerName = "<%= booking.customerName %>";
+        var msgContainer = document.getElementById("booking-chat-messages");
+        var form = document.getElementById("booking-chat-form");
+        var input = document.getElementById("booking-chat-input");
+        var sendBtn = document.getElementById("booking-chat-send-btn");
+
+        function scrollToBottom() {
+          if (msgContainer) {
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+          }
+        }
+
+        function formatMsgTime(iso) {
+          try {
+            var d = new Date(iso);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } catch(e) { return ''; }
+        }
+
+        function renderMessages(messages) {
+          if (!messages || messages.length === 0) {
+            msgContainer.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs">' +
+              '<svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' +
+              'No messages yet. Send a message to start communicating with the customer.' +
+              '</div>';
+            return;
+          }
+
+          var html = '';
+          messages.forEach(function(m) {
+            var isMe = (m.senderType === 'OWNER');
+            html += '<div class="flex flex-col ' + (isMe ? 'items-end' : 'items-start') + '">';
+            html += '<div class="flex items-center gap-1.5 mb-1 text-[11px] text-gray-400">';
+            html += '<span class="font-semibold text-gray-700">' + (isMe ? 'You (Owner)' : (m.senderName || customerName)) + '</span>';
+            html += '<span>•</span>';
+            html += '<span>' + formatMsgTime(m.createdAt) + '</span>';
+            html += '</div>';
+            html += '<div class="max-w-[78%] px-3.5 py-2 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ' +
+              (isMe ? 'bg-primary-600 text-white rounded-tr-xs' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-xs') + '">';
+            html += escapeHtml(m.message);
+            html += '</div>';
+            html += '</div>';
+          });
+          msgContainer.innerHTML = html;
+          scrollToBottom();
+        }
+
+        function escapeHtml(text) {
+          var div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
+        async function loadMessages() {
+          try {
+            var res = await fetch('/api/v1/chat/messages?bookingId=' + encodeURIComponent(bookingId));
+            if (!res.ok) throw new Error('Failed to load messages');
+            var data = await res.json();
+            renderMessages(data.messages || []);
+            // Mark as read
+            fetch('/api/v1/chat/read', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ threadId: threadId })
+            }).catch(function(){});
+          } catch (err) {
+            msgContainer.innerHTML = '<div class="text-center py-6 text-red-500 text-xs">Could not load chat messages.</div>';
+          }
+        }
+
+        // Send message handler
+        form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          var txt = input.value.trim();
+          if (!txt) return;
+
+          sendBtn.disabled = true;
+          input.value = '';
+          try {
+            var res = await fetch('/api/v1/chat/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                bookingId: bookingId,
+                recipientEmail: customerEmail,
+                senderType: 'OWNER',
+                message: txt
+              })
+            });
+            if (!res.ok) {
+              var errData = await res.json();
+              throw new Error(errData.message || 'Failed to send message');
+            }
+            loadMessages();
+          } catch (err) {
+            alert('Failed to send: ' + err.message);
+          } finally {
+            sendBtn.disabled = false;
+            input.focus();
+          }
+        });
+
+        // Initialize Socket.io
+        try {
+          var socket = io();
+          socket.emit('join:thread', threadId);
+          socket.on('chat:message', function(msg) {
+            if (msg.threadId === threadId) {
+              loadMessages();
+            }
+          });
+        } catch (e) {
+          console.warn('Socket connection note:', e);
+        }
+
+        // Initial load
+        loadMessages();
+      })();
+    </script>
   </div>
 </div>

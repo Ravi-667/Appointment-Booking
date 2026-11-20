@@ -277,6 +277,19 @@ router.get("/dashboard", viewAuth, requireTenant, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get("/dashboard/chat", viewAuth, requireTenant, async (req, res, next) => {
+  try {
+    const tenantId = req.user.tenantId;
+    const tenant = await tenantsService.findOne(tenantId);
+    const initialThreadId = req.query.threadId || null;
+    res.render("dashboard/chat", {
+      title: "Messages & Inquiries",
+      tenant,
+      initialThreadId,
+    });
+  } catch (err) { next(err); }
+});
+
 router.get("/dashboard/bookings", viewAuth, requireTenant, async (req, res, next) => {
   try {
     const result = await bookingsService.getBookings(req.user.tenantId, req.query);

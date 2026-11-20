@@ -9,33 +9,47 @@ const PORT = process.env.PORT || 3000;
 // Create HTTP server (needed for Socket.io)
 const server = http.createServer(app);
 
-// WebSocket for live dashboard
+// WebSocket for live dashboard & real-time chat
 const io = new Server(server, {
   cors: { origin: process.env.ALLOWED_ORIGINS?.split(",") || "*", credentials: true },
-  namespace: "/dashboard",
 });
 
 const jwt = require("jsonwebtoken");
 
-io.use((socket, next) => {
-  try {
-    const token = socket.handshake.auth.token;
-    if (!token) return next(new Error("No token"));
-    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    socket.data.tenantId = payload.tenantId;
-    next();
-  } catch {
-    next(new Error("Invalid token"));
-  }
-});
-
 io.on("connection", (socket) => {
-  if (socket.data.tenantId) {
-    socket.join(`tenant:${socket.data.tenantId}`);
-    console.log(`WS client joined tenant:${socket.data.tenantId}`);
+  // Allow client to join a specific chat thread room (e.g. "booking_UUID" or "inquiry_email")
+  socket.on("join:thread", (threadId) => {
+    if (threadId && typeof threadId === "string") {
+      socket.join(threadId);
+      console.log(`Socket ${socket.id} joined thread: ${threadId}`);
+    }
+  });
+
+  // Allow tenant owner to join tenant room for live chat notifications & dashboard updates
+  socket.on("join:tenant", (tenantId) => {
+    if (tenantId && typeof tenantId === "string") {
+      socket.join(`tenant:${tenantId}`);
+      console.log(`Socket ${socket.id} joined tenant: ${tenantId}`);
+    }
+  });
+
+  // Authenticate token if present
+  const token = socket.handshake.auth?.token;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      if (payload.tenantId) {
+        socket.data.tenantId = payload.tenantId;
+        socket.join(`tenant:${payload.tenantId}`);
+        console.log(`WS client joined tenant:${payload.tenantId}`);
+      }
+    } catch {
+      // Ignored for unauthenticated visitor chat connections
+    }
   }
+
   socket.on("disconnect", () => {
-    console.log(`WS client disconnected: ${socket.id}`);
+    // Clean disconnection
   });
 });
 
