@@ -22,6 +22,16 @@ router.post("/verify", async (req, res, next) => {
   }
 });
 
+// Direct UPI Payment Verification (calculates HMAC signature server-side and confirms booking)
+router.post("/verify-upi", async (req, res, next) => {
+  try {
+    const { bookingId, razorpayOrderId, upiId } = req.body;
+    res.json(await paymentsService.verifyUpiPayment({ bookingId, razorpayOrderId, upiId }));
+  } catch (e) {
+    next(e);
+  }
+});
+
 // Webhook — NO auth guard, raw body set in app.js
 router.post("/webhook/razorpay", async (req, res, next) => {
   try {

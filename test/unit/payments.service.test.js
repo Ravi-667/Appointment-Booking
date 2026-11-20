@@ -114,6 +114,38 @@ describe("PaymentsService - Full Payment & Razorpay Flow", () => {
     });
   });
 
+  describe("verifyUpiPayment", () => {
+    it("should generate valid HMAC signature and confirm UPI payment", async () => {
+      const bookingId = "b-upi-1";
+      const razorpayOrderId = "order_upi_12345";
+      const mockBooking = {
+        id: bookingId,
+        tenantId: "t-1",
+        customerEmail: "upi@example.com",
+        customerName: "UPI User",
+        startTime: new Date(),
+        status: "CONFIRMED",
+        razorpayOrderId,
+      };
+      const mockPayment = { id: "p-upi", bookingId, razorpayOrderId, status: "PENDING" };
+
+      jest.spyOn(prisma.booking, "findUnique").mockResolvedValue(mockBooking);
+      jest.spyOn(prisma.payment, "findFirst").mockResolvedValue(mockPayment);
+      jest.spyOn(prisma, "$transaction").mockResolvedValue([{}, {}]);
+      jest.spyOn(kafka, "publish").mockResolvedValue();
+
+      const result = await paymentsService.verifyUpiPayment({
+        bookingId,
+        razorpayOrderId,
+        upiId: "success@razorpay",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.paymentId).toMatch(/^pay_upi_/);
+      expect(result.booking.status).toBe("CONFIRMED");
+    });
+  });
+
   describe("handleWebhook", () => {
     it("should reject invalid webhook signature with 400", async () => {
       await expect(
