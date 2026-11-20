@@ -845,6 +845,10 @@
             });
           },
           modal: {
+            backdropclose: false,
+            escape: true,
+            handleback: true,
+            confirm_close: true,
             ondismiss: function () {
               resetPayButton(btn);
               if (errEl) {
