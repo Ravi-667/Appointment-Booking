@@ -90,7 +90,7 @@ class NotificationsService {
       where.isRead = false;
     }
 
-    const [notifications, unreadCount] = await Promise.all([
+    const [rawNotifications, unreadCount] = await Promise.all([
       prisma.inAppNotification.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -100,6 +100,36 @@ class NotificationsService {
         where: { ...where, isRead: false },
       }),
     ]);
+
+    // Intelligently resolve optimal interactive action links
+    const notifications = rawNotifications.map(n => {
+      let resolvedLink = n.link;
+      const meta = n.metadata || {};
+
+      if (n.type === "CHAT_MESSAGE") {
+        const threadId = meta.threadId || (n.link && n.link.includes("threadId=") ? new URLSearchParams(n.link.split("?")[1]).get("threadId") : null);
+        const bookingId = meta.bookingId || (threadId && threadId.startsWith("booking_") ? threadId.replace("booking_", "") : null);
+
+        if (tenantId) {
+          // If viewing from business dashboard context, open in Owner Messages Hub
+          resolvedLink = `/dashboard/chat` + (threadId ? `?threadId=${encodeURIComponent(threadId)}` : "");
+        } else if (bookingId) {
+          // If viewing from customer context, auto-open booking consultation chat modal
+          resolvedLink = `/my-bookings?openChat=${encodeURIComponent(bookingId)}`;
+        } else if (meta.tenantSlug) {
+          resolvedLink = `/business/${meta.tenantSlug}?openChat=true`;
+        }
+      } else if (n.type === "STAFF_APPLICATION" && tenantId) {
+        resolvedLink = `/dashboard/staff?tab=applications`;
+      } else if ((n.type === "BOOKING_CONFIRMED" || n.type === "BOOKING_CANCELLED") && !tenantId && meta.bookingId) {
+        resolvedLink = `/my-bookings?highlightBooking=${encodeURIComponent(meta.bookingId)}`;
+      }
+
+      return {
+        ...n,
+        link: resolvedLink || n.link || "#",
+      };
+    });
 
     return { notifications, unreadCount };
   }
@@ -457,9 +487,35 @@ class NotificationsService {
   /**
    * Dispatches in-app notification when a chat message is sent
    */
-  async notifyChatMessage({ tenantId, senderType, senderName, recipientEmail, message, threadId }) {
-    if (senderType === "CUSTOMER" || senderType === "VISITOR") {
-      // Alert Owner
+  async notifyChatMessage({ tenantId, senderType, senderName, senderEmail, recipientEmail, message, threadId }) {
+    let bookingId = null;
+    if (threadId && threadId.startsWith("booking_")) {
+      bookingId = threadId.replace("booking_", "");
+    }
+
+    let tenantSlug = null;
+    let isRecipientOwner = false;
+
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (tenantId && UUID_REGEX.test(tenantId)) {
+      try {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { id: true, slug: true, email: true },
+        });
+        if (tenant) {
+          tenantSlug = tenant.slug;
+          if (recipientEmail && tenant.email && recipientEmail.toLowerCase().trim() === tenant.email.toLowerCase().trim()) {
+            isRecipientOwner = true;
+          }
+        }
+      } catch (err) {
+        console.warn("Tenant lookup warning in notifyChatMessage:", err.message);
+      }
+    }
+
+    if (senderType === "CUSTOMER" || senderType === "VISITOR" || isRecipientOwner) {
+      // Alert Owner -> Route to Owner Messages Hub with thread pre-selected
       await this.createInApp({
         tenantId,
         role: "OWNER",
@@ -468,17 +524,23 @@ class NotificationsService {
         type: "CHAT_MESSAGE",
         link: `/dashboard/chat?threadId=${encodeURIComponent(threadId)}`,
         userEmail: recipientEmail,
+        metadata: { threadId, bookingId, senderType, senderName, tenantSlug },
       });
-    } else if (senderType === "OWNER") {
-      // Alert Customer
+    } else {
+      // Alert Customer -> Route to My Bookings with consultation chat modal auto-opened
+      const customerLink = bookingId
+        ? `/my-bookings?openChat=${encodeURIComponent(bookingId)}`
+        : (tenantSlug ? `/business/${tenantSlug}?openChat=true` : `/my-bookings`);
+
       await this.createInApp({
         tenantId,
         role: "CUSTOMER",
         title: `New Reply from ${senderName}`,
         message: message.length > 80 ? message.slice(0, 80) + "..." : message,
         type: "CHAT_MESSAGE",
-        link: "/my-bookings",
+        link: customerLink,
         userEmail: recipientEmail,
+        metadata: { threadId, bookingId, senderType, senderName, tenantSlug },
       });
     }
   }

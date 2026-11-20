@@ -58,15 +58,20 @@
   </div>
 
   <!-- Live Notifications & Updates Banner -->
-  <div id="customer-notif-banner" class="hidden mb-6 p-4 rounded-2xl bg-primary-50/70 border border-primary-100 flex items-start justify-between gap-3 text-xs">
+  <div id="customer-notif-banner" class="hidden mb-6 p-4 rounded-2xl bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
     <div class="flex items-start gap-3">
-      <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">🔔</div>
+      <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-xs shadow-2xs">🔔</div>
       <div>
         <h4 id="cust-notif-title" class="font-bold text-gray-900 text-xs">Latest Appointment Update</h4>
         <p id="cust-notif-msg" class="text-gray-600 mt-0.5 leading-relaxed"></p>
       </div>
     </div>
-    <button type="button" onclick="document.getElementById('customer-notif-banner').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-base font-bold cursor-pointer">&times;</button>
+    <div class="flex items-center gap-2 self-end sm:self-center">
+      <button type="button" id="cust-notif-action-btn" class="hidden px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-2xs transition cursor-pointer">
+        Reply in Chat 💬
+      </button>
+      <button type="button" onclick="document.getElementById('customer-notif-banner').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-lg font-bold px-1.5 cursor-pointer" title="Dismiss">&times;</button>
+    </div>
   </div>
 
   <!-- Tabs Navigation -->
@@ -87,18 +92,6 @@
       Showing bookings for: <span id="current-email-label" class="font-semibold text-gray-700"></span>
       <button type="button" onclick="changeEmailSearch()" class="ml-1 text-primary-600 hover:underline">Change</button>
     </div>
-  </div>
-
-  <!-- Live Notifications & Updates Banner -->
-  <div id="customer-notif-banner" class="hidden mb-6 p-4 rounded-2xl bg-primary-50/70 border border-primary-100 flex items-start justify-between gap-3 text-xs">
-    <div class="flex items-start gap-3">
-      <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">🔔</div>
-      <div>
-        <h4 id="cust-notif-title" class="font-bold text-gray-900 text-xs">Latest Appointment Update</h4>
-        <p id="cust-notif-msg" class="text-gray-600 mt-0.5 leading-relaxed"></p>
-      </div>
-    </div>
-    <button type="button" onclick="document.getElementById('customer-notif-banner').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-base font-bold cursor-pointer">&times;</button>
   </div>
 
   <!-- Loading State -->
@@ -399,7 +392,7 @@
       activeEmailPill.classList.remove("hidden");
       emailLookupCard.classList.add("hidden");
 
-      // Check for customer alerts
+      // Check for customer alerts & notifications
       fetch("/api/v1/notifications?email=" + encodeURIComponent(email) + "&limit=3")
         .then(function(r){ return r.json(); })
         .then(function(d){
@@ -408,15 +401,68 @@
             var banner = document.getElementById("customer-notif-banner");
             var title = document.getElementById("cust-notif-title");
             var msg = document.getElementById("cust-notif-msg");
+            var actionBtn = document.getElementById("cust-notif-action-btn");
             if (banner && title && msg) {
               title.textContent = latest.title;
               msg.textContent = latest.message;
+
+              var meta = latest.metadata || {};
+              var threadId = meta.threadId || (latest.link && latest.link.includes("openChat=") ? new URLSearchParams(latest.link.split("?")[1]).get("openChat") : null);
+              var bookingId = meta.bookingId || (threadId && threadId.startsWith("booking_") ? threadId.replace("booking_", "") : threadId);
+
+              if (latest.type === "CHAT_MESSAGE" && bookingId && actionBtn) {
+                actionBtn.textContent = "Reply in Chat 💬";
+                actionBtn.onclick = function() { window.openChatModal(bookingId); };
+                actionBtn.classList.remove("hidden");
+              } else if (bookingId && actionBtn) {
+                actionBtn.textContent = "View Appointment →";
+                actionBtn.onclick = function() {
+                  var el = document.getElementById("booking-card-" + bookingId);
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                };
+                actionBtn.classList.remove("hidden");
+              } else if (actionBtn) {
+                actionBtn.classList.add("hidden");
+              }
+
               banner.classList.remove("hidden");
             }
           }
         }).catch(function(){});
 
       renderBookings();
+
+      // Check URL query parameters for deep linking
+      try {
+        var urlParams = new URLSearchParams(window.location.search);
+        var autoOpenChatId = urlParams.get("openChat");
+        var autoHighlightId = urlParams.get("highlightBooking");
+        var requestedTab = urlParams.get("tab");
+
+        if (requestedTab && requestedTab.toLowerCase() === "past") {
+          switchBookingsTab("PAST");
+        }
+
+        if (autoOpenChatId) {
+          var allBookings = bookingsData.upcoming.concat(bookingsData.past);
+          var inPast = bookingsData.past.some(function(b){ return b.id === autoOpenChatId; });
+          if (inPast) {
+            switchBookingsTab("PAST");
+          }
+          setTimeout(function() {
+            window.openChatModal(autoOpenChatId);
+          }, 200);
+        } else if (autoHighlightId) {
+          setTimeout(function() {
+            var el = document.getElementById("booking-card-" + autoHighlightId);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+              el.classList.add("ring-4", "ring-primary-400", "transition-all");
+              setTimeout(function(){ el.classList.remove("ring-4", "ring-primary-400"); }, 3000);
+            }
+          }, 250);
+        }
+      } catch(e){}
     } catch(err) {
       cardsContainer.innerHTML = '<div class="p-6 text-center text-red-600 bg-red-50 border border-red-200 rounded-xl text-sm font-medium">Failed to load appointments: ' + err.message + '</div>';
     } finally {
@@ -456,7 +502,9 @@
   window.openChatModal = function(bookingId) {
     var all = bookingsData.upcoming.concat(bookingsData.past);
     var b = all.find(function(item){ return item.id === bookingId; });
-    if (!b) return;
+    if (!b) {
+      b = { id: bookingId, tenant: { name: "Specialist Consultation" }, service: { name: "Appointment Message" } };
+    }
 
     activeChatBooking = b;
     var threadId = "booking_" + b.id;

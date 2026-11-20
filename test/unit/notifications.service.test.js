@@ -255,5 +255,49 @@ describe("NotificationsService - Automated Reminders & Multi-Profile Hub", () =>
         type: "CANDIDATE_REJECTED",
       }));
     });
+
+    it("notifyChatMessage: should route customer replies to my-bookings with openChat", async () => {
+      const inAppSpy = jest.spyOn(notificationsService, "createInApp").mockResolvedValue({});
+      jest.spyOn(prisma.tenant, "findUnique").mockResolvedValue({ id: "t-1", slug: "radha-salon", email: "owner@salon.com" });
+
+      await notificationsService.notifyChatMessage({
+        tenantId: "t-1",
+        senderType: "OWNER",
+        senderName: "Radha Sharma",
+        senderEmail: "owner@salon.com",
+        recipientEmail: "customer@gmail.com",
+        message: "Hello, looking forward to your appointment!",
+        threadId: "booking_b-12345",
+      });
+
+      expect(inAppSpy).toHaveBeenCalledWith(expect.objectContaining({
+        role: "CUSTOMER",
+        type: "CHAT_MESSAGE",
+        link: "/my-bookings?openChat=b-12345",
+        userEmail: "customer@gmail.com",
+      }));
+    });
+
+    it("notifyChatMessage: should route incoming customer messages to dashboard/chat for owner", async () => {
+      const inAppSpy = jest.spyOn(notificationsService, "createInApp").mockResolvedValue({});
+      jest.spyOn(prisma.tenant, "findUnique").mockResolvedValue({ id: "t-1", slug: "radha-salon", email: "owner@salon.com" });
+
+      await notificationsService.notifyChatMessage({
+        tenantId: "t-1",
+        senderType: "CUSTOMER",
+        senderName: "Amit Kumar",
+        senderEmail: "customer@gmail.com",
+        recipientEmail: "owner@salon.com",
+        message: "Can I bring my friend along?",
+        threadId: "booking_b-12345",
+      });
+
+      expect(inAppSpy).toHaveBeenCalledWith(expect.objectContaining({
+        tenantId: "t-1",
+        role: "OWNER",
+        type: "CHAT_MESSAGE",
+        link: "/dashboard/chat?threadId=booking_b-12345",
+      }));
+    });
   });
 });

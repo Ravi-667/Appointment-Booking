@@ -107,8 +107,8 @@
           <!-- Actions -->
           <div class="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 text-xs">
             <% if (n.link) { %>
-              <a href="<%= n.link %>" class="px-3.5 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 font-semibold rounded-lg transition cursor-pointer">
-                View Details
+              <a href="<%= n.link %>" class="px-3.5 py-1.5 <%= isChat ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-2xs' : 'bg-primary-50 hover:bg-primary-100 text-primary-700' %> font-semibold rounded-lg transition cursor-pointer">
+                <%= isChat ? 'Reply in Chat 💬' : isStaffApp ? 'Review Candidate 💼' : 'View Details' %>
               </a>
             <% } %>
 

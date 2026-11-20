@@ -222,7 +222,29 @@
 
                   var html = '';
                   data.notifications.slice(0, 7).forEach(function(n) {
-                    html += '<a href="' + (n.link || '#') + '" onclick="markRead(\'' + n.id + '\')" class="flex items-start gap-3 p-3.5 hover:bg-gray-50 transition cursor-pointer ' + (!n.isRead ? 'bg-primary-50/40' : '') + '">';
+                    var targetLink = n.link || '#';
+                    var meta = n.metadata || {};
+
+                    if (n.type === 'CHAT_MESSAGE') {
+                      var threadId = meta.threadId || (n.link && n.link.includes('threadId=') ? new URLSearchParams(n.link.split('?')[1]).get('threadId') : null);
+                      var bookingId = meta.bookingId || (threadId && threadId.startsWith('booking_') ? threadId.replace('booking_', '') : null);
+
+                      if (tenantId) {
+                        // Current viewer is an OWNER / Manager -> Always open Owner Messages Hub with thread loaded
+                        targetLink = '/dashboard/chat' + (threadId ? '?threadId=' + encodeURIComponent(threadId) : '');
+                      } else if (bookingId) {
+                        // Current viewer is a CUSTOMER -> Auto-open booking consultation chat modal
+                        targetLink = '/my-bookings?openChat=' + encodeURIComponent(bookingId);
+                      } else if (meta.tenantSlug) {
+                        targetLink = '/business/' + encodeURIComponent(meta.tenantSlug) + '?openChat=true';
+                      }
+                    } else if (n.type === 'STAFF_APPLICATION' && tenantId) {
+                      targetLink = '/dashboard/staff?tab=applications';
+                    } else if ((n.type === 'BOOKING_CONFIRMED' || n.type === 'BOOKING_CANCELLED') && !tenantId && meta.bookingId) {
+                      targetLink = '/my-bookings?highlightBooking=' + encodeURIComponent(meta.bookingId);
+                    }
+
+                    html += '<a href="' + targetLink + '" onclick="markRead(\'' + n.id + '\')" class="flex items-start gap-3 p-3.5 hover:bg-gray-50 transition cursor-pointer ' + (!n.isRead ? 'bg-primary-50/40' : '') + '">';
                     html += getNotificationIcon(n.type);
                     html += '<div class="min-w-0 flex-1">';
                     html += '<div class="flex items-center justify-between gap-2">';
@@ -230,6 +252,9 @@
                     html += '<span class="text-[10px] text-gray-400 whitespace-nowrap">' + formatRelativeTime(n.createdAt) + '</span>';
                     html += '</div>';
                     html += '<p class="text-xs text-gray-600 line-clamp-2 mt-0.5 leading-snug">' + escapeHtml(n.message) + '</p>';
+                    if (n.type === 'CHAT_MESSAGE') {
+                      html += '<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-600 mt-1 hover:underline">💬 Reply in conversation &rarr;</span>';
+                    }
                     html += '</div>';
                     html += '</a>';
                   });
