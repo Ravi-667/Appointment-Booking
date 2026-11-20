@@ -277,15 +277,28 @@ class BookingsService {
     };
   }
 
-  async customerCancel(bookingId, customerEmail, reason) {
-    if (!customerEmail || !customerEmail.trim()) {
+  async customerCancel(bookingId, customerEmail, reason, isOwner = false, ownerTenantId = null) {
+    if (!customerEmail && !isOwner) {
       throw makeError("Customer email is required", 400);
     }
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(bookingId)) {
+      throw makeError("Booking not found", 404);
+    }
+
+    const where = { id: bookingId };
+    if (!isOwner || customerEmail) {
+      if (customerEmail) {
+        where.customerEmail = { equals: customerEmail.toLowerCase().trim(), mode: "insensitive" };
+      } else if (ownerTenantId) {
+        where.tenantId = ownerTenantId;
+      }
+    } else if (ownerTenantId) {
+      where.tenantId = ownerTenantId;
+    }
+
     const booking = await prisma.booking.findFirst({
-      where: {
-        id: bookingId,
-        customerEmail: { equals: customerEmail.toLowerCase().trim(), mode: "insensitive" },
-      },
+      where,
       include: { service: true, tenant: true },
     });
     if (!booking) throw makeError("Booking not found", 404);

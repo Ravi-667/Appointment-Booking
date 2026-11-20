@@ -52,8 +52,13 @@ router.get("/messages", optionalAuth, async (req, res, next) => {
     // If tenantId is not passed but bookingId or booking_ threadId is, resolve tenantId
     if (!tenantId && (bookingId || (threadId && threadId.startsWith("booking_")))) {
       const bId = bookingId || threadId.replace("booking_", "");
-      const b = await prisma.booking.findUnique({ where: { id: bId } });
-      if (b) tenantId = b.tenantId;
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_REGEX.test(bId)) {
+        try {
+          const b = await prisma.booking.findUnique({ where: { id: bId } });
+          if (b) tenantId = b.tenantId;
+        } catch {}
+      }
     }
 
     if (!tenantId) {

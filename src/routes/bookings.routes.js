@@ -64,10 +64,12 @@ router.get("/my-bookings", async (req, res, next) => {
 // Customer cancellation from My Bookings portal
 router.post("/:id/customer-cancel", async (req, res, next) => {
   try {
-    const sessionEmail = req.session?.user?.email;
-    const email = sessionEmail || req.body.email;
-    const reason = req.body.reason || "Cancelled by customer";
-    const result = await bookingsService.customerCancel(req.params.id, email, reason);
+    const sessionUser = req.session?.user;
+    const sessionEmail = sessionUser?.email;
+    const isOwner = sessionUser?.role === "OWNER" || !!sessionUser?.tenantId;
+    const email = req.body.email || sessionEmail;
+    const reason = req.body.reason || "Cancelled by customer via My Bookings portal";
+    const result = await bookingsService.customerCancel(req.params.id, email, reason, isOwner, sessionUser?.tenantId);
     res.json(result);
   } catch (e) { next(e); }
 });

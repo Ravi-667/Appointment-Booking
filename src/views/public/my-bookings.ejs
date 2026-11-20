@@ -123,7 +123,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      Interactive In-Page Appointment Consultation Chat Modal
 ════════════════════════════════════════════════════════════ -->
-<div id="chat-consultation-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+<div id="chat-consultation-modal" style="display: none;" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg h-[540px] max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
     
     <!-- Modal Header -->
@@ -342,7 +342,7 @@
 
       html += '<div class="flex items-center gap-2">';
       // Chat button
-      html += '<button type="button" onclick="openChatModal(\'' + b.id + '\')" ' +
+      html += '<button type="button" onclick="openChatModal(\'' + b.id + '\', \'' + (b.tenantId || (tenant ? tenant.id : '')) + '\')" ' +
         'class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 font-semibold text-xs rounded-xl border border-primary-200 transition shadow-2xs cursor-pointer">' +
         '<svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' +
         '<span>Chat with Specialist</span>' +
@@ -478,8 +478,10 @@
     }
   });
 
-  window.cancelCustomerBooking = async function(bookingId) {
-    var email = emailInput.value.trim() || "<%= (typeof user !== 'undefined' && user) ? user.email : '' %>";
+  window.cancelCustomerBooking = async function(bookingId, bookingEmail) {
+    var all = (bookingsData.upcoming || []).concat(bookingsData.past || []);
+    var b = all.find(function(item){ return item.id === bookingId; });
+    var email = (b && b.customerEmail) || bookingEmail || (emailInput ? emailInput.value.trim() : "") || currentEmailLabel.textContent.trim() || "<%= (typeof user !== 'undefined' && user) ? user.email : '' %>";
     if (!confirm("Are you sure you want to cancel this appointment?")) return;
 
     try {
@@ -488,64 +490,118 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email, reason: "Cancelled by customer via My Bookings portal" })
       });
+      var data = await res.json();
       if (!res.ok) {
-        var errD = await res.json();
-        throw new Error(errD.message || "Failed to cancel");
+        throw new Error(data.message || "Failed to cancel");
       }
-      fetchMyBookings(email);
+      var activeEmail = currentEmailLabel.textContent.trim() || email;
+      fetchMyBookings(activeEmail);
     } catch(err) {
-      alert("Could not cancel: " + err.message);
+      alert("Could not cancel appointment: " + err.message);
     }
   };
 
   // ── Modal Chat Handling ─────────────────────────────────────
-  window.openChatModal = function(bookingId) {
-    var all = bookingsData.upcoming.concat(bookingsData.past);
+  window.openChatModal = function(bookingId, tenantId) {
+    var modal = document.getElementById("chat-consultation-modal");
+    if (!modal) return;
+
+    var all = (bookingsData.upcoming || []).concat(bookingsData.past || []);
     var b = all.find(function(item){ return item.id === bookingId; });
     if (!b) {
-      b = { id: bookingId, tenant: { name: "Specialist Consultation" }, service: { name: "Appointment Message" } };
+      b = {
+        id: bookingId,
+        tenantId: tenantId,
+        tenant: { name: "Specialist Consultation" },
+        service: { name: "Appointment Consultation" }
+      };
     }
 
     activeChatBooking = b;
     var threadId = "booking_" + b.id;
+    var actualTenantId = b.tenantId || tenantId || (b.tenant ? b.tenant.id : null);
 
-    modalChatTitle.textContent = (b.tenant ? b.tenant.name : "Salon") + " Consultation";
-    modalChatService.textContent = (b.service ? b.service.name : "Appointment");
-    modalChatAvatar.textContent = (b.tenant && b.tenant.name ? b.tenant.name.charAt(0) : "S").toUpperCase();
+    var tenantName = (b.tenant && b.tenant.name) ? b.tenant.name : "Salon";
+    var staffName = (b.staff && b.staff.name) ? b.staff.name : null;
+    var serviceName = (b.service && b.service.name) ? b.service.name : "Appointment";
 
-    chatModal.classList.remove("hidden");
-    loadModalMessages(threadId);
+    var titleEl = document.getElementById("modal-chat-title");
+    var serviceEl = document.getElementById("modal-chat-service");
+    var avatarEl = document.getElementById("modal-chat-avatar");
+
+    if (titleEl) titleEl.textContent = staffName ? (staffName + " (" + tenantName + ")") : (tenantName + " Consultation");
+    if (serviceEl) serviceEl.textContent = serviceName;
+    if (avatarEl) avatarEl.textContent = (staffName ? staffName.charAt(0) : (tenantName.charAt(0) || "S")).toUpperCase();
+
+    modal.style.display = "flex";
+    modal.classList.remove("hidden");
+    loadModalMessages(threadId, actualTenantId);
 
     // Socket.io connection
     try {
-      if (!socket) socket = io();
-      socket.emit("join:thread", threadId);
-      socket.on("chat:message", function(msg) {
-        if (msg.threadId === threadId) {
-          loadModalMessages(threadId);
-        }
-      });
+      if (!socket && typeof io !== "undefined") socket = io();
+      if (socket) {
+        socket.emit("join:thread", threadId);
+        socket.off("chat:message");
+        socket.on("chat:message", function(msg) {
+          if (msg.threadId === threadId) {
+            loadModalMessages(threadId, actualTenantId);
+          }
+        });
+      }
     } catch(e){}
 
-    setTimeout(function(){ modalChatInput.focus(); }, 100);
+    setTimeout(function(){
+      var inputEl = document.getElementById("modal-chat-input");
+      if (inputEl) inputEl.focus();
+    }, 100);
   };
 
   window.closeChatModal = function() {
-    chatModal.classList.add("hidden");
+    var modal = document.getElementById("chat-consultation-modal");
+    if (modal) {
+      modal.style.display = "none";
+      modal.classList.add("hidden");
+    }
     activeChatBooking = null;
   };
 
-  async function loadModalMessages(threadId) {
+  // Click outside backdrop to close
+  var modalBackdrop = document.getElementById("chat-consultation-modal");
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener("click", function(e) {
+      if (e.target === this) {
+        window.closeChatModal();
+      }
+    });
+  }
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+      window.closeChatModal();
+    }
+  });
+
+  async function loadModalMessages(threadId, tenantId) {
+    var stream = document.getElementById("modal-chat-stream");
+    if (!stream) return;
+
     try {
-      var res = await fetch("/api/v1/chat/messages?threadId=" + encodeURIComponent(threadId));
-      if (!res.ok) return;
+      var query = "?threadId=" + encodeURIComponent(threadId);
+      if (tenantId) query += "&tenantId=" + encodeURIComponent(tenantId);
+      var res = await fetch("/api/v1/chat/messages" + query);
+      if (!res.ok) {
+        stream.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs">' +
+          'Send a message to start communicating with the specialist.' +
+          '</div>';
+        return;
+      }
       var data = await res.json();
       var msgs = data.messages || [];
 
       if (msgs.length === 0) {
-        modalChatStream.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs">' +
+        stream.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs">' +
           '<svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' +
-          'No messages yet. Send a message to start communicating with the specialist.' +
+          'No messages yet. Send a message to start communicating with your specialist.' +
           '</div>';
         return;
       }
@@ -558,7 +614,7 @@
 
         html += '<div class="flex flex-col ' + (isMe ? 'items-end' : 'items-start') + '">';
         html += '<div class="flex items-center gap-1.5 mb-1 text-[10px] text-gray-400">';
-        html += '<span class="font-semibold text-gray-700">' + (isMe ? 'You' : (m.senderName || 'Salon Owner')) + '</span>';
+        html += '<span class="font-semibold text-gray-700">' + (isMe ? 'You' : (m.senderName || 'Specialist')) + '</span>';
         html += '<span>• ' + timeStr + '</span>';
         html += '</div>';
         html += '<div class="max-w-[80%] px-3.5 py-2 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ' +
@@ -568,9 +624,11 @@
         html += '</div>';
       });
 
-      modalChatStream.innerHTML = html;
-      modalChatStream.scrollTop = modalChatStream.scrollHeight;
-    } catch(e){}
+      stream.innerHTML = html;
+      stream.scrollTop = stream.scrollHeight;
+    } catch(e){
+      stream.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs">Send a message to begin conversation.</div>';
+    }
   }
 
   modalChatForm.addEventListener("submit", async function(e) {
@@ -584,25 +642,29 @@
     modalChatInput.value = "";
 
     try {
+      var customerName = activeChatBooking.customerName || (typeof user !== "undefined" && user && user.name ? user.name : "Customer");
+      var customerEmail = activeChatBooking.customerEmail || (typeof user !== "undefined" && user && user.email ? user.email : currentEmailLabel.textContent.trim());
+      var actualTenantId = activeChatBooking.tenantId || (activeChatBooking.tenant ? activeChatBooking.tenant.id : null);
+
       var res = await fetch("/api/v1/chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bookingId: activeChatBooking.id,
-          tenantId: activeChatBooking.tenantId,
-          senderName: activeChatBooking.customerName,
-          senderEmail: activeChatBooking.customerEmail,
+          tenantId: actualTenantId,
+          senderName: customerName,
+          senderEmail: customerEmail,
           senderType: "CUSTOMER",
           message: text
         })
       });
       if (!res.ok) {
         var errD = await res.json();
-        throw new Error(errD.message || "Failed to send");
+        throw new Error(errD.message || "Failed to send message");
       }
-      loadModalMessages("booking_" + activeChatBooking.id);
+      loadModalMessages("booking_" + activeChatBooking.id, actualTenantId);
     } catch(err) {
-      alert("Error sending: " + err.message);
+      alert("Error sending message: " + err.message);
     } finally {
       modalChatSendBtn.disabled = false;
       modalChatInput.focus();
