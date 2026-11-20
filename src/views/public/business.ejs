@@ -67,8 +67,98 @@
         <p class="text-gray-500 text-center py-8">No services available at this time.</p>
       <% } %>
     </div>
+
+    <!-- Careers / Join Our Team Section -->
+    <div class="px-8 py-5 bg-gradient-to-r from-blue-50/70 to-indigo-50/50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <span class="text-[11px] font-bold text-primary-600 uppercase tracking-wider block">Careers & Opportunities</span>
+        <h3 class="text-base font-bold text-gray-900 mt-0.5">Want to work with <%= tenant.name %>?</h3>
+        <p class="text-xs text-gray-500 mt-0.5">We are always looking for talented specialists, therapists, and stylists to join our team.</p>
+      </div>
+      <button type="button" onclick="openApplyStaffModal()"
+        class="flex-shrink-0 px-4 py-2.5 bg-white hover:bg-primary-50 text-primary-700 text-xs font-semibold rounded-xl border border-primary-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer">
+        <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+        <span>Apply as Staff</span>
+      </button>
+    </div>
   </div>
 </div>
+
+<!-- Apply as Staff Candidate Modal -->
+<div id="apply-staff-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" style="display: none;">
+  <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md overflow-hidden animate-fade-in" onclick="event.stopPropagation()">
+    <div class="px-6 py-4 bg-primary-600 text-white flex justify-between items-center">
+      <div>
+        <h3 class="font-bold text-base leading-tight">Apply to Join <%= tenant.name %></h3>
+        <p class="text-xs text-primary-100 mt-0.5">Submit your credentials directly to the owner</p>
+      </div>
+      <button type="button" onclick="closeApplyStaffModal()" class="text-white/80 hover:text-white text-xl font-bold p-1 cursor-pointer">&times;</button>
+    </div>
+
+    <form action="/business/<%= tenant.slug %>/apply-staff" method="POST" class="p-6 space-y-3.5 text-xs">
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Full Name *</label>
+        <input type="text" name="applicantName" required placeholder="e.g. Rahul Kapoor"
+          value="<%= typeof user !== 'undefined' && user ? user.name : '' %>"
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Email Address *</label>
+          <input type="email" name="email" required placeholder="rahul@example.com"
+            value="<%= typeof user !== 'undefined' && user ? user.email : '' %>"
+            class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Phone Number</label>
+          <input type="tel" name="phone" placeholder="+91 98765 43210"
+            class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Position / Role Applying For *</label>
+        <input type="text" name="roleTitle" required placeholder="e.g. Senior Hair Stylist, Therapist, Esthetician"
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+      </div>
+
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Years of Experience & Key Skills</label>
+        <input type="text" name="experience" placeholder="e.g. 5+ years in hair spas and precision styling"
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+      </div>
+
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Cover Note / Message to Owner</label>
+        <textarea name="coverNote" rows="2" placeholder="Tell the salon owner why you are a great fit..."
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
+      </div>
+
+      <div class="pt-2 flex justify-end gap-2">
+        <button type="button" onclick="closeApplyStaffModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition cursor-pointer">Cancel</button>
+        <button type="submit" class="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold shadow-2xs transition cursor-pointer">Submit Application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  window.openApplyStaffModal = function() {
+    var modal = document.getElementById('apply-staff-modal');
+    modal.style.display = 'flex';
+  };
+  window.closeApplyStaffModal = function() {
+    var modal = document.getElementById('apply-staff-modal');
+    modal.style.display = 'none';
+  };
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeApplyStaffModal();
+  });
+  document.getElementById('apply-staff-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeApplyStaffModal();
+  });
+</script>
 
 <!-- ═══════════════════════════════════════════════════════════
      Floating Global Chat Panel for Visitors & Customers

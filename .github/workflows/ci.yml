@@ -58,8 +58,12 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
-      - name: Prisma generate
-        run: npx prisma generate
+      - name: Prisma generate and sync schema
+        run: |
+          npx prisma generate
+          npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/booking_test
 
       - name: Run tests
         run: npm test
@@ -67,8 +71,12 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/booking_test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          NODE_ENV: test
+          SESSION_SECRET: test_session_secret_for_ci
           JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET || 'test_jwt_access_secret_for_ci_pipeline_runs_safely' }}
           JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'test_jwt_refresh_secret_for_ci_pipeline_runs_safely' }}
+          RAZORPAY_KEY_ID: rzp_test_placeholder
+          RAZORPAY_KEY_SECRET: rzp_secret_placeholder
 
   build:
     needs: test

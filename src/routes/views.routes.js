@@ -396,32 +396,103 @@ router.post("/dashboard/services/:id/delete", viewAuth, requireTenant, async (re
   res.redirect("/dashboard/services");
 });
 
-// Staff CRUD
+// Staff CRUD & Recruitment Hub
 router.get("/dashboard/staff", viewAuth, requireTenant, async (req, res, next) => {
   try {
-    const staffList = await staffService.findAll(req.user.tenantId);
-    res.render("dashboard/staff", { title: "Staff", staffList });
+    const tenantId = req.user.tenantId;
+    const [staffList, services, applications] = await Promise.all([
+      staffService.findAll(tenantId, true),
+      servicesService.findAll(tenantId, false),
+      staffService.getApplications(tenantId),
+    ]);
+    res.render("dashboard/staff", {
+      title: "Staff & Recruitment Hub",
+      staffList,
+      services,
+      applications,
+    });
   } catch (err) { next(err); }
 });
 
 router.post("/dashboard/staff", viewAuth, requireTenant, async (req, res) => {
   try {
-    await staffService.create(req.user.tenantId, { name: req.body.name, bio: req.body.bio || undefined });
-    req.flash("success", "Staff member added!");
+    let serviceIds = req.body.serviceIds;
+    if (serviceIds && !Array.isArray(serviceIds)) {
+      serviceIds = [serviceIds];
+    }
+    await staffService.create(req.user.tenantId, {
+      name: req.body.name,
+      roleTitle: req.body.roleTitle || undefined,
+      email: req.body.email || undefined,
+      phone: req.body.phone || undefined,
+      bio: req.body.bio || undefined,
+      serviceIds,
+    });
+    req.flash("success", "Staff member added successfully!");
   } catch (err) {
     req.flash("error", err.message);
   }
   res.redirect("/dashboard/staff");
 });
 
+router.post("/dashboard/staff/applications/:id/accept", viewAuth, requireTenant, async (req, res) => {
+  try {
+    let serviceIds = req.body.serviceIds;
+    if (serviceIds && !Array.isArray(serviceIds)) {
+      serviceIds = [serviceIds];
+    }
+    await staffService.acceptApplication(req.user.tenantId, req.params.id, {
+      serviceIds,
+      roleTitle: req.body.roleTitle,
+      notes: req.body.notes,
+    });
+    req.flash("success", "Candidate hired and added to active staff roster!");
+  } catch (err) {
+    req.flash("error", err.message);
+  }
+  res.redirect("/dashboard/staff?tab=applications");
+});
+
+router.post("/dashboard/staff/applications/:id/reject", viewAuth, requireTenant, async (req, res) => {
+  try {
+    await staffService.rejectApplication(req.user.tenantId, req.params.id, req.body.notes);
+    req.flash("success", "Application marked as rejected.");
+  } catch (err) {
+    req.flash("error", err.message);
+  }
+  res.redirect("/dashboard/staff?tab=applications");
+});
+
 router.post("/dashboard/staff/:id/deactivate", viewAuth, requireTenant, async (req, res) => {
   try {
     await staffService.deactivate(req.user.tenantId, req.params.id);
-    req.flash("success", "Staff deactivated.");
+    req.flash("success", "Staff member deactivated.");
   } catch (err) {
     req.flash("error", err.message);
   }
   res.redirect("/dashboard/staff");
+});
+
+router.post("/dashboard/staff/:id/activate", viewAuth, requireTenant, async (req, res) => {
+  try {
+    await staffService.activate(req.user.tenantId, req.params.id);
+    req.flash("success", "Staff member reactivated!");
+  } catch (err) {
+    req.flash("error", err.message);
+  }
+  res.redirect("/dashboard/staff");
+});
+
+// Candidate Public Staff Application Route
+router.post("/business/:slug/apply-staff", async (req, res) => {
+  try {
+    const tenant = await tenantsService.findBySlug(req.params.slug);
+    await staffService.applyForStaff(tenant.id, req.body);
+    req.flash("success", `Application submitted successfully to ${tenant.name}! The owner will review your application.`);
+  } catch (err) {
+    req.flash("error", err.message || "Failed to submit job application.");
+  }
+  res.redirect(`/business/${req.params.slug}`);
 });
 
 // Settings

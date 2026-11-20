@@ -36,6 +36,7 @@ model Tenant {
   bookings      Booking[]
   auditLogs     AuditLog[]
   chatMessages  ChatMessage[]
+  staffApplications StaffApplication[]
 
   @@map("tenants")
 }
@@ -125,12 +126,15 @@ model Service {
 }
 
 model Staff {
-  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String  @db.Uuid
-  name      String  @db.VarChar(100)
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @db.Uuid
+  name      String   @db.VarChar(100)
+  roleTitle String?  @db.VarChar(100)
+  email     String?  @db.VarChar(255)
+  phone     String?  @db.VarChar(20)
   bio       String?
   avatarUrl String?
-  isActive  Boolean @default(true)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
   tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -140,6 +144,26 @@ model Staff {
   bookingHolds  BookingHold[]
 
   @@map("staff")
+}
+
+model StaffApplication {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String   @db.Uuid
+  applicantName String   @db.VarChar(100)
+  email         String   @db.VarChar(255)
+  phone         String?  @db.VarChar(20)
+  roleTitle     String   @db.VarChar(100)
+  experience    String?
+  coverNote     String?
+  status        String   @default("PENDING") @db.VarChar(30)
+  ownerNotes    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("staff_applications")
 }
 
 model StaffService {

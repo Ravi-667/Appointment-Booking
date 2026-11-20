@@ -1,66 +1,472 @@
-<!-- Staff management -->
-<div class="max-w-5xl mx-auto px-4 py-8">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Staff</h1>
-    <button onclick="document.getElementById('add-staff-modal').classList.remove('hidden')"
-      class="px-4 py-2 bg-primary-600 text-white text-sm font-semibold rounded-lg hover:bg-primary-700 transition">+ Add Staff</button>
+<!-- ═══════════════════════════════════════════════════════════
+     Staff & Recruitment Management Hub — Business Owner
+════════════════════════════════════════════════════════════ -->
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  
+  <!-- Header Bar -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
+        <svg class="w-7 h-7 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>Staff & Team Management</span>
+      </h1>
+      <p class="text-sm text-gray-500 mt-1">Manage active staff members, assign services, and review candidate job applications.</p>
+    </div>
+
+    <!-- Add Staff Trigger Button -->
+    <button type="button" id="btn-open-add-staff" onclick="openAddStaffModal()"
+      class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-sm font-semibold rounded-xl shadow-xs transition cursor-pointer">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      <span>+ Add Staff</span>
+    </button>
   </div>
 
-  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    <% if (staffList && staffList.length > 0) { %>
-      <% staffList.forEach(s => { %>
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <div class="flex items-center space-x-3">
-          <div class="w-12 h-12 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center font-bold text-lg">
-            <%= s.name.charAt(0).toUpperCase() %>
-          </div>
-          <div>
-            <h3 class="font-semibold text-gray-900"><%= s.name %></h3>
-            <% if (!s.isActive) { %><span class="text-xs text-gray-400">Inactive</span><% } %>
-          </div>
-        </div>
-        <% if (s.bio) { %><p class="text-sm text-gray-500 mt-3"><%= s.bio %></p><% } %>
-        <% if (s.staffServices && s.staffServices.length > 0) { %>
-        <div class="mt-3 flex flex-wrap gap-1">
-          <% s.staffServices.forEach(ss => { %>
-            <span class="px-2 py-0.5 text-xs bg-primary-50 text-primary-700 rounded-full"><%= ss.service ? ss.service.name : '' %></span>
-          <% }) %>
-        </div>
+  <% 
+    const totalStaff = (typeof staffList !== 'undefined' && staffList) ? staffList.length : 0;
+    const activeStaff = (typeof staffList !== 'undefined' && staffList) ? staffList.filter(s => s.isActive).length : 0;
+    const allApps = (typeof applications !== 'undefined' && applications) ? applications : [];
+    const pendingApps = allApps.filter(a => a.status === 'PENDING').length;
+  %>
+
+  <!-- Quick KPI Counters -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs">
+      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Total Team</span>
+      <p class="text-2xl font-bold text-gray-900 mt-1"><%= totalStaff %></p>
+      <span class="text-[11px] text-gray-400">members registered</span>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs">
+      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Active Specialists</span>
+      <p class="text-2xl font-bold text-emerald-600 mt-1"><%= activeStaff %></p>
+      <span class="text-[11px] text-emerald-600 font-medium">available for slots</span>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs col-span-2 sm:col-span-1">
+      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Job Applications</span>
+      <div class="flex items-center gap-2 mt-1">
+        <p class="text-2xl font-bold <%= pendingApps > 0 ? 'text-amber-600' : 'text-gray-900' %>"><%= pendingApps %></p>
+        <% if (pendingApps > 0) { %>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 animate-pulse">Needs Review</span>
         <% } %>
-        <div class="mt-4 flex space-x-2">
-          <form action="/dashboard/staff/<%= s.id %>/deactivate" method="POST" onsubmit="return confirm('Deactivate this staff member?')">
-            <button type="submit" class="px-3 py-1 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50 transition">Deactivate</button>
-          </form>
-        </div>
       </div>
-      <% }) %>
+      <span class="text-[11px] text-gray-400"><%= allApps.length %> total candidates</span>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="flex items-center border-b border-gray-200 mb-6 space-x-6 text-sm font-semibold">
+    <button type="button" id="tab-staff-btn" onclick="switchStaffTab('STAFF')"
+      class="pb-3 border-b-2 border-primary-600 text-primary-600 flex items-center gap-2 transition cursor-pointer">
+      <span>Active Staff (<%= activeStaff %>)</span>
+    </button>
+    <button type="button" id="tab-applicants-btn" onclick="switchStaffTab('APPLICANTS')"
+      class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 flex items-center gap-2 transition cursor-pointer">
+      <span>Job Applications & Candidates</span>
+      <% if (pendingApps > 0) { %>
+        <span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800 font-bold"><%= pendingApps %></span>
+      <% } else { %>
+        <span class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600"><%= allApps.length %></span>
+      <% } %>
+    </button>
+  </div>
+
+  <!-- ── Tab 1: Staff Roster ──────────────────────────────── -->
+  <div id="section-staff-roster" class="space-y-4">
+    <% if (staffList && staffList.length > 0) { %>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <% staffList.forEach(s => { %>
+        <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-5 flex flex-col justify-between hover:shadow-md transition">
+          <div>
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-primary-100 text-primary-700 font-bold text-lg flex items-center justify-center flex-shrink-0">
+                  <%= (s.name ? s.name.charAt(0) : 'S').toUpperCase() %>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="font-bold text-base text-gray-900 truncate leading-tight"><%= s.name %></h3>
+                  <p class="text-xs text-primary-600 font-semibold mt-0.5 truncate"><%= s.roleTitle || 'Specialist' %></p>
+                </div>
+              </div>
+              <div>
+                <% if (s.isActive) { %>
+                  <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                  </span>
+                <% } else { %>
+                  <span class="inline-flex items-center text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Inactive</span>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Contact info if provided -->
+            <% if (s.email || s.phone) { %>
+            <div class="text-xs text-gray-500 space-y-0.5 mb-2.5">
+              <% if (s.email) { %><p class="truncate">✉️ <%= s.email %></p><% } %>
+              <% if (s.phone) { %><p class="truncate">📞 <%= s.phone %></p><% } %>
+            </div>
+            <% } %>
+
+            <!-- Bio -->
+            <% if (s.bio) { %>
+              <p class="text-xs text-gray-600 line-clamp-2 mb-3"><%= s.bio %></p>
+            <% } %>
+
+            <!-- Services assigned -->
+            <div class="pt-3 border-t border-gray-100">
+              <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider block mb-1.5">Assigned Services</span>
+              <% if (s.staffServices && s.staffServices.length > 0) { %>
+                <div class="flex flex-wrap gap-1">
+                  <% s.staffServices.forEach(ss => { %>
+                    <span class="px-2 py-0.5 text-[11px] font-medium bg-primary-50 text-primary-700 rounded-md border border-primary-100">
+                      <%= ss.service ? ss.service.name : '' %>
+                    </span>
+                  <% }) %>
+                </div>
+              <% } else { %>
+                <span class="text-xs text-gray-400 italic">No services assigned yet</span>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+            <span class="text-gray-400 text-[11px]">Since <%= new Date(s.createdAt).toLocaleDateString([], { month:'short', year:'numeric' }) %></span>
+            <div>
+              <% if (s.isActive) { %>
+                <form action="/dashboard/staff/<%= s.id %>/deactivate" method="POST" onsubmit="return confirm('Deactivate <%= s.name %>? They will not appear in slot bookings.')">
+                  <button type="submit" class="px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition cursor-pointer">Deactivate</button>
+                </form>
+              <% } else { %>
+                <form action="/dashboard/staff/<%= s.id %>/activate" method="POST">
+                  <button type="submit" class="px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 rounded-lg border border-emerald-200 transition cursor-pointer">Reactivate</button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
     <% } else { %>
-      <div class="sm:col-span-2 lg:col-span-3 bg-white rounded-xl border border-gray-200 p-12 text-center">
-        <p class="text-gray-400 mb-4">No staff members yet.</p>
-        <button onclick="document.getElementById('add-staff-modal').classList.remove('hidden')"
-          class="px-4 py-2 bg-primary-600 text-white text-sm font-semibold rounded-lg">+ Add Staff</button>
+      <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-xs">
+        <div class="w-14 h-14 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mx-auto mb-3">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <h3 class="text-base font-bold text-gray-900">No Staff Members Yet</h3>
+        <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1 mb-4">Add your specialists, stylists or doctors so customers can select them during booking.</p>
+        <button type="button" onclick="openAddStaffModal()" class="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-xl shadow-xs transition cursor-pointer">+ Add Staff</button>
       </div>
     <% } %>
   </div>
+
+  <!-- ── Tab 2: Job Applications & Candidates ─────────────── -->
+  <div id="section-applications" class="hidden space-y-4">
+    <% if (allApps && allApps.length > 0) { %>
+      <div class="space-y-4">
+        <% allApps.forEach(a => { 
+          const isPending = (a.status === 'PENDING');
+          const isAccepted = (a.status === 'ACCEPTED');
+          const isRejected = (a.status === 'REJECTED');
+        %>
+        <div class="bg-white rounded-2xl border <%= isPending ? 'border-amber-300 ring-2 ring-amber-50 shadow-sm' : 'border-gray-200 shadow-xs' %> p-5 sm:p-6 transition">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-full bg-primary-100 text-primary-700 font-bold text-sm flex items-center justify-center flex-shrink-0">
+                <%= (a.applicantName ? a.applicantName.charAt(0) : 'C').toUpperCase() %>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-base text-gray-900"><%= a.applicantName %></h3>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                    Role: <%= a.roleTitle %>
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                  <span>✉️ <%= a.email %></span>
+                  <% if (a.phone) { %><span>📞 <%= a.phone %></span><% } %>
+                  <span>• Applied on <%= new Date(a.createdAt).toLocaleDateString([], { day:'numeric', month:'short', year:'numeric' }) %></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Status Pill -->
+            <div>
+              <% if (isPending) { %>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Pending Review
+                </span>
+              <% } else if (isAccepted) { %>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  ✓ Hired & Active
+                </span>
+              <% } else { %>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
+                  Not Selected
+                </span>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Application details -->
+          <div class="py-3 text-xs space-y-2">
+            <% if (a.experience) { %>
+              <div>
+                <span class="font-bold text-gray-700">Experience & Background:</span>
+                <p class="text-gray-600 mt-0.5"><%= a.experience %></p>
+              </div>
+            <% } %>
+            <% if (a.coverNote) { %>
+              <div>
+                <span class="font-bold text-gray-700">Cover Note / Message:</span>
+                <p class="text-gray-600 mt-0.5 italic">"<%= a.coverNote %>"</p>
+              </div>
+            <% } %>
+            <% if (a.ownerNotes) { %>
+              <div class="p-2.5 bg-gray-50 rounded-lg text-gray-600 text-[11px] border border-gray-100">
+                <span class="font-semibold text-gray-700">Owner Feedback / Decision Note:</span> <%= a.ownerNotes %>
+              </div>
+            <% } %>
+          </div>
+
+          <!-- Action Bar for Owner -->
+          <% if (isPending) { %>
+          <div class="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+            <a href="mailto:<%= a.email %>?subject=Regarding your application for <%= a.roleTitle %>"
+              class="inline-flex items-center gap-1.5 text-xs text-primary-600 font-semibold hover:underline">
+              <span>✉️ Contact Candidate</span>
+            </a>
+            <div class="flex items-center gap-2">
+              <!-- Reject Form -->
+              <form action="/dashboard/staff/applications/<%= a.id %>/reject" method="POST" onsubmit="return confirm('Reject this application?')">
+                <input type="hidden" name="notes" value="Reviewed by owner and not selected at this time">
+                <button type="submit" class="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-600 text-xs font-semibold rounded-lg border border-gray-300 transition cursor-pointer">
+                  Decline
+                </button>
+              </form>
+              
+              <!-- Accept & Hire Button (Opens hiring modal) -->
+              <button type="button" onclick="openHireModal('<%= a.id %>', '<%= a.applicantName %>', '<%= a.roleTitle %>')"
+                class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer">
+                <span>✓ Accept & Hire</span>
+              </button>
+            </div>
+          </div>
+          <% } %>
+        </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-xs">
+        <div class="w-14 h-14 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <h3 class="text-base font-bold text-gray-900">No Job Applications Yet</h3>
+        <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1">Candidates can apply directly through your public business page. When someone submits their application, it will appear here for review.</p>
+      </div>
+    <% } %>
+  </div>
+
 </div>
 
-<!-- Add Staff Modal -->
-<div id="add-staff-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-bold text-gray-900">Add Staff Member</h2>
-      <button onclick="document.getElementById('add-staff-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+<!-- ═══════════════════════════════════════════════════════════
+     Fixed & Robust "+ Add Staff" Modal
+════════════════════════════════════════════════════════════ -->
+<div id="add-staff-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" style="display: none;">
+  <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg overflow-hidden animate-fade-in" onclick="event.stopPropagation()">
+    
+    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+      <div>
+        <h2 class="text-base font-bold text-gray-900">Add New Staff Member</h2>
+        <p class="text-xs text-gray-500 mt-0.5">Register a specialist to take slot appointments</p>
+      </div>
+      <button type="button" onclick="closeAddStaffModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold p-1 cursor-pointer">&times;</button>
     </div>
-    <form action="/dashboard/staff" method="POST" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-        <input type="text" name="name" required maxlength="100" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+
+    <form action="/dashboard/staff" method="POST" class="p-6 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Full Name *</label>
+          <input type="text" id="staff-name-input" name="name" required maxlength="100" placeholder="e.g. Priya Sharma"
+            class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Role / Designation</label>
+          <input type="text" name="roleTitle" placeholder="e.g. Senior Stylist, Therapist"
+            class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
       </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-        <textarea name="bio" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Email (Optional)</label>
+          <input type="email" name="email" placeholder="priya@example.com"
+            class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Phone (Optional)</label>
+          <input type="tel" name="phone" placeholder="+91 98765 43210"
+            class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
       </div>
-      <button type="submit" class="w-full py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition">Add Staff</button>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Bio / Expertise</label>
+        <textarea name="bio" rows="2" placeholder="Brief experience, certifications or specialty..."
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
+      </div>
+
+      <!-- Assign Services Checkbox Grid -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Assign Services to this Specialist</label>
+        <% if (typeof services !== 'undefined' && services && services.length > 0) { %>
+          <div class="max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2.5 space-y-1.5 bg-gray-50/50">
+            <% services.forEach(svc => { %>
+              <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded transition cursor-pointer text-xs">
+                <input type="checkbox" name="serviceIds" value="<%= svc.id %>" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500 cursor-pointer">
+                <span class="font-medium text-gray-800"><%= svc.name %></span>
+                <span class="text-gray-400 text-[11px] ml-auto">₹<%= Number(svc.price).toLocaleString() %></span>
+              </label>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <p class="text-xs text-gray-400 italic">No services created yet. You can assign services later.</p>
+        <% } %>
+      </div>
+
+      <div class="pt-3 border-t border-gray-200 flex justify-end gap-2">
+        <button type="button" onclick="closeAddStaffModal()"
+          class="px-4 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50 transition cursor-pointer">Cancel</button>
+        <button type="submit"
+          class="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition cursor-pointer">Add Staff Member</button>
+      </div>
     </form>
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     Hire Candidate Modal
+════════════════════════════════════════════════════════════ -->
+<div id="hire-candidate-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" style="display: none;">
+  <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md overflow-hidden animate-fade-in" onclick="event.stopPropagation()">
+    <div class="px-6 py-4 bg-emerald-50 border-b border-emerald-100 flex justify-between items-center">
+      <div>
+        <h2 class="text-base font-bold text-emerald-900">Hire Candidate</h2>
+        <p class="text-xs text-emerald-700 mt-0.5" id="hire-candidate-subtitle">Accept applicant to active team</p>
+      </div>
+      <button type="button" onclick="closeHireModal()" class="text-emerald-700 hover:text-emerald-900 text-xl font-bold p-1 cursor-pointer">&times;</button>
+    </div>
+
+    <form id="hire-candidate-form" action="" method="POST" class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Assigned Role Title</label>
+        <input type="text" id="hire-role-input" name="roleTitle" required
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Assign Services for this Specialist</label>
+        <% if (typeof services !== 'undefined' && services && services.length > 0) { %>
+          <div class="max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2.5 space-y-1.5 bg-gray-50/50">
+            <% services.forEach(svc => { %>
+              <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded transition cursor-pointer text-xs">
+                <input type="checkbox" name="serviceIds" value="<%= svc.id %>" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer">
+                <span class="font-medium text-gray-800"><%= svc.name %></span>
+              </label>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Optional Welcome / Hiring Note</label>
+        <textarea name="notes" rows="2" placeholder="e.g. Welcome to Radha Beauty Salon team!"
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
+      </div>
+
+      <div class="pt-3 border-t border-gray-200 flex justify-end gap-2">
+        <button type="button" onclick="closeHireModal()"
+          class="px-4 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50 transition cursor-pointer">Cancel</button>
+        <button type="submit"
+          class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer">Confirm & Hire</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Tab Switching
+  window.switchStaffTab = function(tab) {
+    var rosterSection = document.getElementById('section-staff-roster');
+    var appsSection = document.getElementById('section-applications');
+    var staffBtn = document.getElementById('tab-staff-btn');
+    var appsBtn = document.getElementById('tab-applicants-btn');
+
+    if (tab === 'STAFF') {
+      rosterSection.classList.remove('hidden');
+      appsSection.classList.add('hidden');
+      staffBtn.className = 'pb-3 border-b-2 border-primary-600 text-primary-600 flex items-center gap-2 transition cursor-pointer font-semibold';
+      appsBtn.className = 'pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 flex items-center gap-2 transition cursor-pointer font-semibold';
+    } else {
+      appsSection.classList.remove('hidden');
+      rosterSection.classList.add('hidden');
+      appsBtn.className = 'pb-3 border-b-2 border-primary-600 text-primary-600 flex items-center gap-2 transition cursor-pointer font-semibold';
+      staffBtn.className = 'pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 flex items-center gap-2 transition cursor-pointer font-semibold';
+    }
+  };
+
+  // Add Staff Modal Controller
+  window.openAddStaffModal = function() {
+    var modal = document.getElementById('add-staff-modal');
+    modal.style.display = 'flex';
+    setTimeout(function() {
+      var inp = document.getElementById('staff-name-input');
+      if (inp) inp.focus();
+    }, 100);
+  };
+
+  window.closeAddStaffModal = function() {
+    var modal = document.getElementById('add-staff-modal');
+    modal.style.display = 'none';
+  };
+
+  // Hire Candidate Modal Controller
+  window.openHireModal = function(id, name, role) {
+    var modal = document.getElementById('hire-candidate-modal');
+    var form = document.getElementById('hire-candidate-form');
+    var sub = document.getElementById('hire-candidate-subtitle');
+    var roleInput = document.getElementById('hire-role-input');
+
+    form.action = '/dashboard/staff/applications/' + id + '/accept';
+    sub.textContent = 'Hire ' + name + ' to your team';
+    roleInput.value = role || '';
+
+    modal.style.display = 'flex';
+  };
+
+  window.closeHireModal = function() {
+    var modal = document.getElementById('hire-candidate-modal');
+    modal.style.display = 'none';
+  };
+
+  // Close modals on Escape key or backdrop click
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeAddStaffModal();
+      closeHireModal();
+    }
+  });
+
+  document.getElementById('add-staff-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddStaffModal();
+  });
+
+  document.getElementById('hire-candidate-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeHireModal();
+  });
+
+  // Auto-switch to applications tab if url has ?tab=applications
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'applications') {
+      switchStaffTab('APPLICANTS');
+    }
+  })();
+</script>
