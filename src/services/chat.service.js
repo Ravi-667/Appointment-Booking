@@ -115,6 +115,17 @@ class ChatService {
       }
     }
 
+    const notificationsService = require("./notifications.service");
+    await notificationsService.notifyChatMessage({
+      tenantId,
+      senderType: type,
+      senderName: senderName.trim(),
+      senderEmail: senderEmail.toLowerCase().trim(),
+      recipientEmail: actualRecipientEmail ? actualRecipientEmail.toLowerCase().trim() : null,
+      message: message.trim(),
+      threadId,
+    }).catch(err => console.warn("Chat notification warning:", err.message));
+
     return chatMessage;
   }
 

@@ -30,8 +30,47 @@
         </div>
         <% } %>
       </div>
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-3 sm:space-x-4">
         <% if (typeof user !== 'undefined' && user) { %>
+          <!-- Notification Bell Dropdown -->
+          <div class="relative" id="notif-bell-wrapper">
+            <button id="notif-bell-btn" type="button"
+              class="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 transition cursor-pointer"
+              title="Notifications" aria-expanded="false" aria-haspopup="true">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <span id="nav-notif-badge" class="hidden absolute top-1 right-1 px-1.5 py-0.5 min-w-[16px] text-[10px] font-bold leading-none text-white bg-red-500 rounded-full border-2 border-white animate-pulse">0</span>
+            </button>
+
+            <!-- Dropdown panel -->
+            <div id="notif-dropdown"
+              class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 z-50 overflow-hidden transition-all duration-200">
+              <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-bold text-gray-900">Notifications</h3>
+                  <span id="notif-count-tag" class="px-2 py-0.5 text-[10px] font-bold bg-primary-100 text-primary-700 rounded-full">0 new</span>
+                </div>
+                <button type="button" id="notif-mark-all-btn" class="text-xs text-primary-600 hover:text-primary-800 font-semibold cursor-pointer">
+                  Mark all read
+                </button>
+              </div>
+
+              <!-- List container -->
+              <div id="notif-items-list" class="max-h-80 overflow-y-auto divide-y divide-gray-100 text-xs">
+                <div class="p-6 text-center text-gray-400">Loading notifications...</div>
+              </div>
+
+              <div class="p-2.5 bg-gray-50 border-t border-gray-200 text-center">
+                <% if (user.tenantId) { %>
+                  <a href="/dashboard/notifications" class="text-xs font-semibold text-primary-600 hover:underline">View All Notifications Hub →</a>
+                <% } else { %>
+                  <a href="/my-bookings" class="text-xs font-semibold text-primary-600 hover:underline">Manage in My Bookings →</a>
+                <% } %>
+              </div>
+            </div>
+          </div>
+
           <!-- Avatar dropdown -->
           <div class="relative" id="user-menu-wrapper">
             <button id="user-menu-btn" type="button"
@@ -100,20 +139,157 @@
               </div>
             </div>
           </div>
+          <script src="https://cdn.socket.io/4.6.2/socket.io.min.js"></script>
           <script>
             (function() {
               var btn = document.getElementById('user-menu-btn');
               var dd  = document.getElementById('user-menu-dropdown');
-              if (!btn || !dd) return;
-              btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var open = dd.classList.toggle('hidden');
-                btn.setAttribute('aria-expanded', open ? 'false' : 'true');
-              });
+              if (btn && dd) {
+                btn.addEventListener('click', function(e) {
+                  e.stopPropagation();
+                  var open = dd.classList.toggle('hidden');
+                  btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+                  // close notification dropdown if open
+                  var ndd = document.getElementById('notif-dropdown');
+                  if (ndd) ndd.classList.add('hidden');
+                });
+              }
+
+              // ─── Notification Bell Controller ────────────────────────────
+              var bellBtn = document.getElementById('notif-bell-btn');
+              var notifDd = document.getElementById('notif-dropdown');
+              var notifBadge = document.getElementById('nav-notif-badge');
+              var notifCountTag = document.getElementById('notif-count-tag');
+              var notifList = document.getElementById('notif-items-list');
+              var markAllBtn = document.getElementById('notif-mark-all-btn');
+
+              var userEmail = "<%= user.email || '' %>";
+              var tenantId = "<%= user.tenantId || '' %>";
+
+              function escapeHtml(str) {
+                var d = document.createElement('div');
+                d.textContent = str || '';
+                return d.innerHTML;
+              }
+
+              function formatRelativeTime(dateStr) {
+                try {
+                  var diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
+                  if (diff < 60) return "Just now";
+                  if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+                  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+                  return Math.floor(diff / 86400) + "d ago";
+                } catch(e) { return ""; }
+              }
+
+              function getNotificationIcon(type) {
+                switch(type) {
+                  case 'BOOKING_CONFIRMED':
+                    return '<div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 font-bold text-xs">✓</div>';
+                  case 'BOOKING_CANCELLED':
+                    return '<div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 font-bold text-xs">✕</div>';
+                  case 'STAFF_APPLICATION':
+                    return '<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-xs">💼</div>';
+                  case 'CHAT_MESSAGE':
+                    return '<div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0 font-bold text-xs">💬</div>';
+                  default:
+                    return '<div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold text-xs">🔔</div>';
+                }
+              }
+
+              async function loadNotifications() {
+                try {
+                  var res = await fetch('/api/v1/notifications?limit=10');
+                  if (!res.ok) return;
+                  var data = await res.json();
+                  var count = data.unreadCount || 0;
+
+                  // Update badge
+                  if (count > 0) {
+                    notifBadge.textContent = count > 99 ? '99+' : count;
+                    notifBadge.classList.remove('hidden');
+                    notifCountTag.textContent = count + ' unread';
+                  } else {
+                    notifBadge.classList.add('hidden');
+                    notifCountTag.textContent = '0 unread';
+                  }
+
+                  // Render list
+                  if (!data.notifications || data.notifications.length === 0) {
+                    notifList.innerHTML = '<div class="p-6 text-center text-gray-400">No notifications yet</div>';
+                    return;
+                  }
+
+                  var html = '';
+                  data.notifications.slice(0, 7).forEach(function(n) {
+                    html += '<a href="' + (n.link || '#') + '" onclick="markRead(\'' + n.id + '\')" class="flex items-start gap-3 p-3.5 hover:bg-gray-50 transition cursor-pointer ' + (!n.isRead ? 'bg-primary-50/40' : '') + '">';
+                    html += getNotificationIcon(n.type);
+                    html += '<div class="min-w-0 flex-1">';
+                    html += '<div class="flex items-center justify-between gap-2">';
+                    html += '<p class="font-bold text-gray-900 text-xs truncate">' + escapeHtml(n.title) + '</p>';
+                    html += '<span class="text-[10px] text-gray-400 whitespace-nowrap">' + formatRelativeTime(n.createdAt) + '</span>';
+                    html += '</div>';
+                    html += '<p class="text-xs text-gray-600 line-clamp-2 mt-0.5 leading-snug">' + escapeHtml(n.message) + '</p>';
+                    html += '</div>';
+                    html += '</a>';
+                  });
+                  notifList.innerHTML = html;
+                } catch(e) {}
+              }
+
+              window.markRead = async function(id) {
+                try {
+                  await fetch('/api/v1/notifications/' + id + '/read', { method: 'PATCH' });
+                } catch(e){}
+              };
+
+              if (bellBtn && notifDd) {
+                bellBtn.addEventListener('click', function(e) {
+                  e.stopPropagation();
+                  var isHidden = notifDd.classList.toggle('hidden');
+                  bellBtn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+                  if (dd) dd.classList.add('hidden');
+                  if (!isHidden) loadNotifications();
+                });
+
+                if (markAllBtn) {
+                  markAllBtn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    try {
+                      await fetch('/api/v1/notifications/mark-all-read', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: userEmail })
+                      });
+                      loadNotifications();
+                    } catch(e){}
+                  });
+                }
+              }
+
               document.addEventListener('click', function() {
-                dd.classList.add('hidden');
-                btn.setAttribute('aria-expanded', 'false');
+                if (dd) dd.classList.add('hidden');
+                if (notifDd) notifDd.classList.add('hidden');
               });
+
+              // Initial load
+              loadNotifications();
+
+              // Socket.IO real-time notification listener
+              try {
+                var socket = io();
+                if (userEmail) socket.emit('join:user', userEmail);
+                if (tenantId) socket.emit('join:tenant', tenantId);
+
+                socket.on('notification:new', function() {
+                  loadNotifications();
+                  if (notifBadge) {
+                    notifBadge.classList.remove('hidden');
+                    notifBadge.classList.add('animate-bounce');
+                    setTimeout(function(){ notifBadge.classList.remove('animate-bounce'); }, 2000);
+                  }
+                });
+              } catch(e){}
             })();
           </script>
         <% } else { %>

@@ -120,6 +120,10 @@ class BookingsService {
     }
     await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED", cancellationReason: reason } });
     await kafka.publish("booking.cancelled", { bookingId, tenantId, reason });
+    const notificationsService = require("./notifications.service");
+    await notificationsService.notifyBookingCancelled(bookingId, reason).catch(e => {
+      console.warn("Direct cancel notification error:", e.message);
+    });
     await auditService.record({
       tenantId,
       action: "BOOKING_CANCELLED",

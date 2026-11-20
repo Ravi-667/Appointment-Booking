@@ -55,6 +55,22 @@ io.on("connection", (socket) => {
 
 // Export io so services can emit events
 app.set("io", io);
+const notificationsService = require("./services/notifications.service");
+notificationsService.setIo(io);
+
+// Socket.IO notification room subscriptions
+io.on("connection", (socket) => {
+  socket.on("join:user", (email) => {
+    if (email) {
+      socket.join(`user:${email.toLowerCase().trim()}`);
+    }
+  });
+
+  socket.on("join:tenant", (tId) => {
+    if (tId) {
+      socket.join(`tenant:${tId}`);
+    }
+  });
 
 // Connect Redis before starting
 redis.connect().catch(() => {

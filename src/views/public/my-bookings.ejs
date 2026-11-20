@@ -57,6 +57,18 @@
     </div>
   </div>
 
+  <!-- Live Notifications & Updates Banner -->
+  <div id="customer-notif-banner" class="hidden mb-6 p-4 rounded-2xl bg-primary-50/70 border border-primary-100 flex items-start justify-between gap-3 text-xs">
+    <div class="flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">🔔</div>
+      <div>
+        <h4 id="cust-notif-title" class="font-bold text-gray-900 text-xs">Latest Appointment Update</h4>
+        <p id="cust-notif-msg" class="text-gray-600 mt-0.5 leading-relaxed"></p>
+      </div>
+    </div>
+    <button type="button" onclick="document.getElementById('customer-notif-banner').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-base font-bold cursor-pointer">&times;</button>
+  </div>
+
   <!-- Tabs Navigation -->
   <div class="flex items-center justify-between border-b border-gray-200 mb-6">
     <div class="flex space-x-6 text-sm font-semibold">
@@ -75,6 +87,18 @@
       Showing bookings for: <span id="current-email-label" class="font-semibold text-gray-700"></span>
       <button type="button" onclick="changeEmailSearch()" class="ml-1 text-primary-600 hover:underline">Change</button>
     </div>
+  </div>
+
+  <!-- Live Notifications & Updates Banner -->
+  <div id="customer-notif-banner" class="hidden mb-6 p-4 rounded-2xl bg-primary-50/70 border border-primary-100 flex items-start justify-between gap-3 text-xs">
+    <div class="flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">🔔</div>
+      <div>
+        <h4 id="cust-notif-title" class="font-bold text-gray-900 text-xs">Latest Appointment Update</h4>
+        <p id="cust-notif-msg" class="text-gray-600 mt-0.5 leading-relaxed"></p>
+      </div>
+    </div>
+    <button type="button" onclick="document.getElementById('customer-notif-banner').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-base font-bold cursor-pointer">&times;</button>
   </div>
 
   <!-- Loading State -->
@@ -374,6 +398,23 @@
       currentEmailLabel.textContent = email;
       activeEmailPill.classList.remove("hidden");
       emailLookupCard.classList.add("hidden");
+
+      // Check for customer alerts
+      fetch("/api/v1/notifications?email=" + encodeURIComponent(email) + "&limit=3")
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d && d.notifications && d.notifications.length > 0) {
+            var latest = d.notifications[0];
+            var banner = document.getElementById("customer-notif-banner");
+            var title = document.getElementById("cust-notif-title");
+            var msg = document.getElementById("cust-notif-msg");
+            if (banner && title && msg) {
+              title.textContent = latest.title;
+              msg.textContent = latest.message;
+              banner.classList.remove("hidden");
+            }
+          }
+        }).catch(function(){});
 
       renderBookings();
     } catch(err) {

@@ -37,6 +37,7 @@ model Tenant {
   auditLogs     AuditLog[]
   chatMessages  ChatMessage[]
   staffApplications StaffApplication[]
+  inAppNotifications InAppNotification[]
 
   @@map("tenants")
 }
@@ -61,6 +62,7 @@ model User {
   updatedAt             DateTime  @updatedAt
 
   tenant Tenant? @relation(fields: [tenantId], references: [id])
+  inAppNotifications InAppNotification[]
 
   @@unique([email, tenantId])
   @@map("users")
@@ -328,5 +330,29 @@ model ChatMessage {
   @@index([threadId, createdAt])
   @@index([bookingId, createdAt])
   @@map("chat_messages")
+}
+
+model InAppNotification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String?   @db.Uuid
+  userId    String?   @db.Uuid
+  userEmail String?   @db.VarChar(255)
+  role      String    @db.VarChar(30) // "OWNER", "CUSTOMER", "STAFF"
+  title     String    @db.VarChar(200)
+  message   String    @db.Text
+  type      String    @db.VarChar(50) // "BOOKING_CONFIRMED", "BOOKING_CANCELLED", "CHAT_MESSAGE", "STAFF_APPLICATION", "REMINDER"
+  link      String?   @db.VarChar(500)
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, isRead, createdAt])
+  @@index([userEmail, isRead, createdAt])
+  @@index([userId, isRead, createdAt])
+  @@map("in_app_notifications")
 }
 

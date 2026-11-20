@@ -71,7 +71,7 @@ class StaffService {
     if (!data.email || !data.email.trim()) throw makeError("Email is required", 400);
     if (!data.roleTitle || !data.roleTitle.trim()) throw makeError("Role Title is required", 400);
 
-    return prisma.staffApplication.create({
+    const app = await prisma.staffApplication.create({
       data: {
         tenantId,
         applicantName: data.applicantName.trim(),
@@ -83,6 +83,13 @@ class StaffService {
         status: "PENDING",
       },
     });
+
+    const notificationsService = require("./notifications.service");
+    await notificationsService.notifyStaffApplicationReceived(app.id).catch(e => {
+      console.warn("Staff application notification error:", e.message);
+    });
+
+    return app;
   }
 
   async getApplications(tenantId, status) {
@@ -134,6 +141,11 @@ class StaffService {
       },
     });
 
+    const notificationsService = require("./notifications.service");
+    await notificationsService.notifyStaffApplicationDecision(applicationId, "ACCEPTED", notes).catch(e => {
+      console.warn("Staff accepted notification error:", e.message);
+    });
+
     return staff;
   }
 
@@ -143,13 +155,20 @@ class StaffService {
     });
     if (!application) throw makeError("Application not found", 404);
 
-    return prisma.staffApplication.update({
+    const updated = await prisma.staffApplication.update({
       where: { id: applicationId },
       data: {
         status: "REJECTED",
         ownerNotes: notes || "Not selected at this time",
       },
     });
+
+    const notificationsService = require("./notifications.service");
+    await notificationsService.notifyStaffApplicationDecision(applicationId, "REJECTED", notes).catch(e => {
+      console.warn("Staff rejected notification error:", e.message);
+    });
+
+    return updated;
   }
 
   async setScheduleOverride(staffId, date, isOff, startTime, endTime) {

@@ -154,6 +154,12 @@ class PaymentsService {
       // Non-blocking Kafka event logging
     }
 
+    // Direct multi-profile notification dispatch (guaranteed delivery)
+    const notificationsService = require("./notifications.service");
+    await notificationsService.notifyBookingConfirmed(booking.id).catch(err => {
+      console.warn("Direct notification dispatch error:", err.message);
+    });
+
     console.log(`✓ Payment verified and booking confirmed: ${bookingId}`);
     return { success: true, booking, paymentId: razorpayPaymentId };
   }

@@ -115,6 +115,7 @@ app.use("/api/v1/payments",     require("./routes/payments.routes"));
 app.use("/api/v1/dashboard",    require("./routes/dashboard.routes"));
 app.use("/api/v1/uploads",      require("./routes/uploads.routes"));
 app.use("/api/v1/chat",         require("./routes/chat.routes"));
+app.use("/api/v1/notifications", require("./routes/notifications.routes"));
 
 // ─── View Routes (EJS pages) ────────────────────────────────────────────────
 app.use("/", require("./routes/views.routes"));

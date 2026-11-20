@@ -581,12 +581,56 @@ router.post("/dashboard/settings/holidays/:id/delete", viewAuth, requireTenant, 
   res.redirect("/dashboard/settings");
 });
 
-// Notifications
+// Notifications Hub & Actions
 router.get("/dashboard/notifications", viewAuth, requireTenant, async (req, res, next) => {
   try {
-    const result = await dashboardService.getNotificationLogs(req.user.tenantId, req.query.page, req.query.limit);
-    res.render("dashboard/notifications", { title: "Notifications", result });
+    const tenantId = req.user.tenantId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+
+    const [result, inAppData] = await Promise.all([
+      dashboardService.getNotificationLogs(tenantId, page, limit),
+      notificationsService.getInAppNotifications({ tenantId, limit: 50 }),
+    ]);
+
+    res.render("dashboard/notifications", {
+      title: "Notifications Hub",
+      result,
+      inAppNotifications: inAppData.notifications || [],
+      unreadCount: inAppData.unreadCount || 0,
+      activeTab: req.query.tab || "feed",
+    });
   } catch (err) { next(err); }
+});
+
+router.post("/dashboard/notifications/:id/read", viewAuth, requireTenant, async (req, res) => {
+  try {
+    await notificationsService.markAsRead(req.params.id);
+    req.flash("success", "Notification marked as read.");
+  } catch (err) {
+    req.flash("error", err.message);
+  }
+  res.redirect("/dashboard/notifications");
+});
+
+router.post("/dashboard/notifications/mark-all-read", viewAuth, requireTenant, async (req, res) => {
+  try {
+    await notificationsService.markAllAsRead({ tenantId: req.user.tenantId });
+    req.flash("success", "All notifications marked as read.");
+  } catch (err) {
+    req.flash("error", err.message);
+  }
+  res.redirect("/dashboard/notifications");
+});
+
+router.post("/dashboard/notifications/:id/delete", viewAuth, requireTenant, async (req, res) => {
+  try {
+    await notificationsService.deleteInApp(req.params.id);
+    req.flash("success", "Notification dismissed.");
+  } catch (err) {
+    req.flash("error", err.message);
+  }
+  res.redirect("/dashboard/notifications");
 });
 
 module.exports = router;
