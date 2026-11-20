@@ -74,7 +74,7 @@ class PaymentsService {
       bookingId,
       keyId,
       isPlaceholder,
-      businessName: booking.tenant?.name || "BookingApp",
+      businessName: booking.tenant?.name || "ReserveSync",
       serviceName: booking.service?.name || "Service",
       customerName: booking.customerName,
       customerEmail: booking.customerEmail,

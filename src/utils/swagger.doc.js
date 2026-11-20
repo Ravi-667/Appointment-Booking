@@ -5,8 +5,8 @@ module.exports = {
     version: "1.0.0",
     description: "Production-grade multi-tenant appointment booking, scheduling, real-time messaging, and payment processing REST API.",
     contact: {
-      name: "BookingApp Developer Support",
-      email: "api@bookingapp.local",
+      name: "ReserveSync Developer Support",
+      email: "api@reservesync.local",
     },
   },
   servers: [

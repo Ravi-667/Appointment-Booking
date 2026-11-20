@@ -1,4 +1,4 @@
-# 📅 BookingApp — Production-Grade Multi-Tenant Appointment Booking Platform
+# 📅 ReserveSync — Production-Grade Multi-Tenant Appointment Booking Platform
 
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-green.svg)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express-4.x-blue.svg)](https://expressjs.com/)
@@ -19,9 +19,9 @@
 
 ## 📖 Executive Overview
 
-**BookingApp** is a robust, production-grade **Multi-Tenant Appointment Booking & Service Marketplace Platform** designed for salons, healthcare clinics, wellness centers, and professional service businesses. 
+**ReserveSync** is a robust, production-grade **Multi-Tenant Appointment Booking & Service Marketplace Platform** designed for salons, healthcare clinics, wellness centers, and professional service businesses. 
 
-Engineered with high concurrency safety, real-time WebSockets, transactional slot holds, and automated hiring pipelines, BookingApp enables multi-industry tenants to operate independent booking portals with custom catalogs, availability rules, and dedicated staffing.
+Engineered with high concurrency safety, real-time WebSockets, transactional slot holds, and automated hiring pipelines, ReserveSync enables multi-industry tenants to operate independent booking portals with custom catalogs, availability rules, and dedicated staffing.
 
 Built from the ground up using **pure Node.js + Express + Prisma ORM + Serverless PostgreSQL (Neon) + Redis + Socket.IO + EJS + Tailwind CSS**.
 
@@ -294,7 +294,7 @@ REDIS_PORT=6379
 # Email & SMS (Local MailHog / Twilio)
 SMTP_HOST=localhost
 SMTP_PORT=1025
-EMAIL_FROM=noreply@bookingapp.local
+EMAIL_FROM=noreply@reservesync.local
 
 # Razorpay Test Credentials
 RAZORPAY_KEY_ID=rzp_test_placeholder
@@ -398,8 +398,8 @@ Key verified test suites:
 
 ### 2. Docker Deployment
 ```bash
-docker build -f docker/Dockerfile.api -t booking-app-api:latest .
-docker run -p 3000:3000 --env-file .env booking-app-api:latest
+docker build -f docker/Dockerfile.api -t reservesync-api:latest .
+docker run -p 3000:3000 --env-file .env reservesync-api:latest
 ```
 
 ---

@@ -791,7 +791,7 @@ class NotificationsService {
 
     try {
       await this.transporter.sendMail({
-        from: process.env.EMAIL_FROM || "noreply@bookingapp.local",
+        from: process.env.EMAIL_FROM || "noreply@reservesync.local",
         to, subject, html,
       });
       await prisma.notificationLog.update({

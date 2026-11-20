@@ -262,7 +262,7 @@ class StaffService {
       recipientEmail: email,
       senderType: "OWNER",
       senderName: staff.tenant?.name || "Business Owner",
-      senderEmail: staff.tenant?.email || "owner@bookingapp.local",
+      senderEmail: staff.tenant?.email || "owner@reservesync.local",
       message: credMessage,
       io,
     }).catch(e => console.warn("Staff credentials chat message warning:", e.message));
