@@ -168,7 +168,7 @@ class ChatService {
   /**
    * Get all conversation threads for a tenant owner dashboard
    */
-  async getThreadsForTenant(tenantId) {
+  async getThreadsForTenant(tenantId, { includeRecentBookings = false } = {}) {
     if (!tenantId) throw makeError("tenantId is required", 400);
 
     const messages = await prisma.chatMessage.findMany({
@@ -194,20 +194,28 @@ class ChatService {
     for (const msg of messages) {
       if (!threadMap.has(msg.threadId)) {
         const isBooking = msg.threadId.startsWith("booking_");
+        const b = msg.booking;
+        const participantName = isBooking
+          ? (b?.customerName || msg.senderName)
+          : (msg.senderType === "VISITOR" ? msg.senderName : (msg.recipientEmail ? msg.recipientEmail.split("@")[0] : "Prospective Customer"));
+        const participantEmail = isBooking
+          ? (b?.customerEmail || msg.senderEmail)
+          : (msg.senderType === "VISITOR" ? msg.senderEmail : msg.recipientEmail);
+
         threadMap.set(msg.threadId, {
           threadId: msg.threadId,
           type: isBooking ? "BOOKING" : "INQUIRY",
           bookingId: msg.bookingId,
-          booking: msg.booking || null,
+          booking: b || null,
           title: isBooking
-            ? `${msg.booking?.customerName || "Customer"} (${msg.booking?.service?.name || "Booking"})`
-            : (msg.senderType === "VISITOR" ? msg.senderName : (msg.recipientEmail || "Visitor Inquiry")),
-          participantEmail: isBooking
-            ? (msg.booking?.customerEmail || msg.senderEmail)
-            : (msg.senderType === "VISITOR" ? msg.senderEmail : msg.recipientEmail),
-          participantName: isBooking
-            ? (msg.booking?.customerName || msg.senderName)
-            : (msg.senderType === "VISITOR" ? msg.senderName : "Prospective Customer"),
+            ? `${b?.customerName || "Customer"} (${b?.service?.name || "Booking"})`
+            : participantName,
+          participantName: participantName,
+          participantEmail: participantEmail,
+          customerName: participantName,
+          customerEmail: participantEmail,
+          senderName: participantName,
+          senderEmail: participantEmail,
           lastMessage: msg.message,
           lastMessageAt: msg.createdAt,
           lastSenderType: msg.senderType,
@@ -219,6 +227,59 @@ class ChatService {
       if (!msg.isRead && msg.senderType !== "OWNER") {
         thread.unreadCount++;
         totalUnread++;
+      }
+    }
+
+    // Safely include recent bookings for this tenant so owner can initiate consultations
+    if (includeRecentBookings && prisma.booking && typeof prisma.booking.findMany === "function") {
+      try {
+        const recentBookings = await prisma.booking.findMany({
+          where: { tenantId },
+          orderBy: { startTime: "desc" },
+          take: 50,
+          select: {
+            id: true,
+            customerName: true,
+            customerEmail: true,
+            startTime: true,
+            status: true,
+            service: { select: { name: true } },
+          },
+        });
+
+        if (Array.isArray(recentBookings)) {
+          for (const b of recentBookings) {
+            const threadId = `booking_${b.id}`;
+            if (!threadMap.has(threadId)) {
+              threadMap.set(threadId, {
+                threadId,
+                type: "BOOKING",
+                bookingId: b.id,
+                booking: {
+                  id: b.id,
+                  customerName: b.customerName,
+                  customerEmail: b.customerEmail,
+                  startTime: b.startTime,
+                  status: b.status,
+                  service: b.service,
+                },
+                title: `${b.customerName || "Customer"} (${b.service?.name || "Booking"})`,
+                participantName: b.customerName || "Customer",
+                participantEmail: b.customerEmail || "",
+                customerName: b.customerName || "Customer",
+                customerEmail: b.customerEmail || "",
+                senderName: b.customerName || "Customer",
+                senderEmail: b.customerEmail || "",
+                lastMessage: "No consultation messages yet — click to chat with customer",
+                lastMessageAt: b.startTime,
+                lastSenderType: null,
+                unreadCount: 0,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load recent bookings for chat:", err.message);
       }
     }
 

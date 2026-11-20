@@ -27,23 +27,25 @@
       
       <!-- Tabs (Inquiries vs Bookings) -->
       <div class="p-3 border-b border-gray-200 bg-white">
-        <div class="flex rounded-xl bg-gray-100 p-1 text-xs font-semibold">
+        <div class="flex rounded-xl bg-gray-100 p-1 text-xs font-semibold gap-1">
           <button type="button" id="tab-inquiries-btn" onclick="switchTab('INQUIRIES')"
-            class="flex-1 py-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-2xs">
+            class="flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-xs font-semibold cursor-pointer">
             <span>General Inquiries</span>
-            <span id="tab-inquiries-badge" class="hidden px-1.5 py-0.2 text-[10px] rounded-full bg-primary-600 text-white font-bold">0</span>
+            <span id="tab-inquiries-count" class="px-1.5 py-0.2 text-[10px] rounded-full bg-gray-200 text-gray-700 font-bold">0</span>
+            <span id="tab-inquiries-badge" class="hidden px-1.5 py-0.2 text-[10px] rounded-full bg-red-600 text-white font-bold animate-pulse">0</span>
           </button>
           <button type="button" id="tab-bookings-btn" onclick="switchTab('BOOKINGS')"
-            class="flex-1 py-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900">
+            class="flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900 font-medium cursor-pointer">
             <span>Booking Chats</span>
-            <span id="tab-bookings-badge" class="hidden px-1.5 py-0.2 text-[10px] rounded-full bg-primary-600 text-white font-bold">0</span>
+            <span id="tab-bookings-count" class="px-1.5 py-0.2 text-[10px] rounded-full bg-gray-200 text-gray-700 font-bold">0</span>
+            <span id="tab-bookings-badge" class="hidden px-1.5 py-0.2 text-[10px] rounded-full bg-red-600 text-white font-bold animate-pulse">0</span>
           </button>
         </div>
 
         <!-- Search Bar -->
         <div class="mt-2.5 relative">
           <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input type="text" id="thread-search" placeholder="Search conversations..."
+          <input type="text" id="thread-search" placeholder="Search conversations by name, email, service..."
             class="w-full pl-9 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 transition">
         </div>
       </div>
@@ -81,7 +83,7 @@
             <div class="min-w-0">
               <div class="flex items-center gap-2">
                 <h3 id="active-name" class="font-bold text-gray-900 text-sm truncate">Customer</h3>
-                <span id="active-type-badge" class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-800">Inquiry</span>
+                <span id="active-type-badge" class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">Inquiry</span>
               </div>
               <p id="active-subtitle" class="text-xs text-gray-400 truncate">customer@example.com</p>
             </div>
@@ -105,11 +107,11 @@
         <!-- Reply Input Composer -->
         <form id="active-chat-form" class="p-4 bg-white border-t border-gray-200 flex items-end gap-2.5">
           <div class="flex-1 min-w-0">
-            <textarea id="active-chat-input" rows="1" placeholder="Type your reply here... (Press Enter to send)"
+            <textarea id="active-chat-input" rows="1" placeholder="Type your reply here... (Press Enter to send, Shift+Enter for newline)"
               class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none max-h-32 transition leading-relaxed"></textarea>
           </div>
           <button type="submit" id="active-send-btn"
-            class="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50">
+            class="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-sm font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50">
             <span>Send</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
           </button>
@@ -133,6 +135,8 @@
 
   var tabInquiriesBtn = document.getElementById("tab-inquiries-btn");
   var tabBookingsBtn = document.getElementById("tab-bookings-btn");
+  var tabInquiriesCount = document.getElementById("tab-inquiries-count");
+  var tabBookingsCount = document.getElementById("tab-bookings-count");
   var tabInquiriesBadge = document.getElementById("tab-inquiries-badge");
   var tabBookingsBadge = document.getElementById("tab-bookings-badge");
   var searchInput = document.getElementById("thread-search");
@@ -154,11 +158,11 @@
   window.switchTab = function(tab) {
     currentTab = tab;
     if (tab === "INQUIRIES") {
-      tabInquiriesBtn.className = "flex-1 py-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-2xs font-semibold";
-      tabBookingsBtn.className = "flex-1 py-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900 font-semibold";
+      tabInquiriesBtn.className = "flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-xs font-semibold cursor-pointer";
+      tabBookingsBtn.className = "flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900 font-medium cursor-pointer";
     } else {
-      tabBookingsBtn.className = "flex-1 py-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-2xs font-semibold";
-      tabInquiriesBtn.className = "flex-1 py-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900 font-semibold";
+      tabBookingsBtn.className = "flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-xs font-semibold cursor-pointer";
+      tabInquiriesBtn.className = "flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900 font-medium cursor-pointer";
     }
     renderThreadsList();
   };
@@ -172,6 +176,7 @@
 
   function formatTime(iso) {
     try {
+      if (!iso) return '';
       var d = new Date(iso);
       var now = new Date();
       if (d.toDateString() === now.toDateString()) {
@@ -182,33 +187,56 @@
   }
 
   function renderThreadsList() {
-    var list = (currentTab === "INQUIRIES") ? threadsData.inquiries : threadsData.bookings;
+    var list = (currentTab === "INQUIRIES") ? (threadsData.inquiries || []) : (threadsData.bookings || []);
     var query = (searchInput.value || '').toLowerCase().trim();
 
     if (query) {
       list = list.filter(function(t) {
-        var name = (t.customerName || t.senderName || '').toLowerCase();
-        var email = (t.customerEmail || t.senderEmail || '').toLowerCase();
+        var name = (t.participantName || t.customerName || t.senderName || t.title || '').toLowerCase();
+        var email = (t.participantEmail || t.customerEmail || t.senderEmail || '').toLowerCase();
         var sName = (t.booking?.service?.name || '').toLowerCase();
-        return name.includes(query) || email.includes(query) || sName.includes(query);
+        var msg = (typeof t.lastMessage === 'string' ? t.lastMessage : (t.lastMessage ? t.lastMessage.message : '')).toLowerCase();
+        return name.includes(query) || email.includes(query) || sName.includes(query) || msg.includes(query);
       });
     }
 
     if (!list || list.length === 0) {
-      threadsContainer.innerHTML = '<div class="text-center py-12 text-gray-400 text-xs">' +
-        'No ' + (currentTab === "INQUIRIES" ? 'general inquiries' : 'booking chats') + ' found.' +
-        '</div>';
+      if (currentTab === "INQUIRIES") {
+        threadsContainer.innerHTML = '<div class="text-center py-12 px-4 text-gray-500 text-xs flex flex-col items-center">' +
+          '<div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3">' +
+          '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' +
+          '</div>' +
+          '<p class="font-bold text-gray-800 text-sm">No general inquiries found</p>' +
+          '<p class="text-gray-400 mt-1 max-w-xs leading-relaxed">Website visitors can ask questions from your public business page. When an inquiry is submitted, it will appear here in real time.</p>' +
+          '<a href="/business/<%= tenant.slug %>" target="_blank" class="mt-3.5 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-200">' +
+          '<span>View Public Business Page</span>' +
+          '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>' +
+          '</a>' +
+          '</div>';
+      } else {
+        threadsContainer.innerHTML = '<div class="text-center py-12 px-4 text-gray-500 text-xs flex flex-col items-center">' +
+          '<div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">' +
+          '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>' +
+          '</div>' +
+          '<p class="font-bold text-gray-800 text-sm">No booking consultations found</p>' +
+          '<p class="text-gray-400 mt-1 max-w-xs leading-relaxed">When appointments are booked, consultation channels will automatically appear here so you can chat directly with your customers.</p>' +
+          '<a href="/dashboard/bookings" class="mt-3.5 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-200">' +
+          '<span>View All Appointments</span>' +
+          '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
+          '</a>' +
+          '</div>';
+      }
       return;
     }
 
     var html = '';
     list.forEach(function(t) {
       var isSelected = activeThread && (activeThread.threadId === t.threadId);
-      var name = t.customerName || t.senderName || (t.threadId.replace('inquiry_', ''));
-      var email = t.customerEmail || t.senderEmail || '';
+      var name = t.participantName || t.customerName || t.senderName || t.title || (t.threadId.replace('inquiry_', '').replace('booking_', ''));
+      var email = t.participantEmail || t.customerEmail || t.senderEmail || '';
       var initial = (name.charAt(0) || '?').toUpperCase();
-      var snippet = t.lastMessage ? escapeHtml(t.lastMessage.message) : 'No messages yet';
-      var time = t.lastMessage ? formatTime(t.lastMessage.createdAt) : '';
+      var snippet = (typeof t.lastMessage === 'string' ? t.lastMessage : (t.lastMessage ? t.lastMessage.message : '')) || 'No messages yet';
+      var time = t.lastMessageAt ? formatTime(t.lastMessageAt) : (t.lastMessage && t.lastMessage.createdAt ? formatTime(t.lastMessage.createdAt) : '');
 
       html += '<div onclick="selectThread(\'' + t.threadId + '\')" class="p-3 rounded-xl cursor-pointer transition flex items-start gap-3 ' +
         (isSelected ? 'bg-primary-50/90 border border-primary-200' : 'hover:bg-white border border-transparent') + '">';
@@ -222,16 +250,18 @@
       html += '<span class="text-[10px] text-gray-400 flex-shrink-0">' + time + '</span>';
       html += '</div>';
 
-      if (t.booking && t.booking.service) {
-        html += '<p class="text-[11px] font-medium text-primary-700 truncate mb-0.5">🗓 ' + escapeHtml(t.booking.service.name) + '</p>';
+      if (t.type === "BOOKING" || t.booking) {
+        var sName = t.booking?.service?.name || 'Appointment Consultation';
+        var statusBadge = t.booking?.status ? '<span class="text-[9px] px-1.5 py-0.2 rounded font-semibold bg-gray-100 text-gray-600 uppercase">' + t.booking.status + '</span>' : '';
+        html += '<div class="flex items-center gap-1.5 text-[11px] text-primary-700 font-medium truncate mb-0.5"><span>🗓 ' + escapeHtml(sName) + '</span>' + statusBadge + '</div>';
       } else {
-        html += '<p class="text-[11px] text-gray-500 truncate mb-0.5">' + escapeHtml(email) + '</p>';
+        html += '<p class="text-[11px] text-gray-500 truncate mb-0.5">✉️ ' + escapeHtml(email || 'Website Visitor') + '</p>';
       }
 
       html += '<div class="flex items-center justify-between gap-2">';
-      html += '<p class="text-[11px] text-gray-400 truncate">' + snippet + '</p>';
+      html += '<p class="text-[11px] text-gray-400 truncate flex-1">' + escapeHtml(snippet) + '</p>';
       if (t.unreadCount > 0) {
-        html += '<span class="px-1.5 py-0.2 rounded-full bg-red-500 text-white text-[10px] font-bold flex-shrink-0">' + t.unreadCount + '</span>';
+        html += '<span class="px-1.5 py-0.2 rounded-full bg-red-500 text-white text-[10px] font-bold flex-shrink-0 animate-pulse">' + t.unreadCount + '</span>';
       }
       html += '</div>';
 
@@ -243,15 +273,18 @@
 
   async function loadThreads() {
     try {
-      var res = await fetch('/api/v1/chat/threads');
+      var res = await fetch('/api/v1/chat/threads?tenantId=' + encodeURIComponent(tenantId));
       if (!res.ok) throw new Error('Failed to load threads');
       var data = await res.json();
       threadsData.inquiries = data.inquiries || [];
       threadsData.bookings = data.bookings || [];
 
-      // Update badge counters
+      // Update badge counters & tab total counts
       var unreadInq = threadsData.inquiries.reduce(function(acc, t){ return acc + (t.unreadCount || 0); }, 0);
       var unreadBkg = threadsData.bookings.reduce(function(acc, t){ return acc + (t.unreadCount || 0); }, 0);
+
+      if (tabInquiriesCount) tabInquiriesCount.textContent = threadsData.inquiries.length;
+      if (tabBookingsCount) tabBookingsCount.textContent = threadsData.bookings.length;
 
       if (unreadInq > 0) {
         tabInquiriesBadge.textContent = unreadInq;
@@ -267,21 +300,21 @@
         tabBookingsBadge.classList.add('hidden');
       }
 
-      renderThreadsList();
-
       // If initial thread specified, auto open it
       if (initialThreadId && !activeThread) {
         selectThread(initialThreadId);
+      } else {
+        renderThreadsList();
       }
     } catch (err) {
-      threadsContainer.innerHTML = '<div class="text-center py-12 text-red-500 text-xs">Failed to load conversations.</div>';
+      threadsContainer.innerHTML = '<div class="text-center py-12 text-red-500 text-xs">Failed to load conversations: ' + err.message + '</div>';
     }
   }
 
   window.selectThread = async function(threadId) {
     // Find thread in either category
-    var found = threadsData.inquiries.find(function(t){ return t.threadId === threadId; }) ||
-                threadsData.bookings.find(function(t){ return t.threadId === threadId; });
+    var found = (threadsData.inquiries || []).find(function(t){ return t.threadId === threadId; }) ||
+                (threadsData.bookings || []).find(function(t){ return t.threadId === threadId; });
 
     activeThread = found || { threadId: threadId };
 
@@ -290,28 +323,29 @@
       switchTab('BOOKINGS');
     } else if (threadId.startsWith('inquiry_') && currentTab !== 'INQUIRIES') {
       switchTab('INQUIRIES');
+    } else {
+      renderThreadsList();
     }
 
-    renderThreadsList();
     emptyState.classList.add('hidden');
     activeState.classList.remove('hidden');
 
-    var displayName = activeThread.customerName || activeThread.senderName || threadId.replace('inquiry_', '');
-    var displayEmail = activeThread.customerEmail || activeThread.senderEmail || '';
+    var displayName = activeThread.participantName || activeThread.customerName || activeThread.senderName || activeThread.title || threadId.replace('inquiry_', '').replace('booking_', '');
+    var displayEmail = activeThread.participantEmail || activeThread.customerEmail || activeThread.senderEmail || '';
 
     activeName.textContent = displayName;
-    activeSubtitle.textContent = displayEmail;
+    activeSubtitle.textContent = displayEmail || (threadId.startsWith('booking_') ? 'Booked Customer' : 'Website Visitor');
     activeAvatar.textContent = (displayName.charAt(0) || '?').toUpperCase();
 
     if (threadId.startsWith('booking_')) {
       activeTypeBadge.textContent = 'Booking Consultation';
-      activeTypeBadge.className = 'px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-100 text-emerald-800';
+      activeTypeBadge.className = 'px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
       var bId = activeThread.bookingId || threadId.replace('booking_', '');
       activeBookingLink.href = '/dashboard/bookings/' + bId;
       activeBookingAction.classList.remove('hidden');
     } else {
       activeTypeBadge.textContent = 'General Inquiry';
-      activeTypeBadge.className = 'px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-800';
+      activeTypeBadge.className = 'px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200';
       activeBookingAction.classList.add('hidden');
     }
 
@@ -326,7 +360,7 @@
     fetch('/api/v1/chat/read', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ threadId: threadId })
+      body: JSON.stringify({ threadId: threadId, tenantId: tenantId })
     }).then(function() {
       if (activeThread.unreadCount) {
         activeThread.unreadCount = 0;
@@ -338,22 +372,26 @@
   async function loadActiveMessages(threadId) {
     messagesContainer.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs">' +
       '<svg class="w-6 h-6 mx-auto mb-2 text-gray-300 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>' +
-      'Loading message history...</div>';
+      'Loading conversation history...</div>';
 
     try {
-      var res = await fetch('/api/v1/chat/messages?threadId=' + encodeURIComponent(threadId));
+      var res = await fetch('/api/v1/chat/messages?threadId=' + encodeURIComponent(threadId) + '&tenantId=' + encodeURIComponent(tenantId));
       if (!res.ok) throw new Error('Failed to load thread');
       var data = await res.json();
       renderActiveMessages(data.messages || []);
     } catch (err) {
-      messagesContainer.innerHTML = '<div class="text-center py-10 text-red-500 text-xs">Error loading messages.</div>';
+      messagesContainer.innerHTML = '<div class="text-center py-10 text-red-500 text-xs">Error loading messages: ' + err.message + '</div>';
     }
   }
 
   function renderActiveMessages(messages) {
     if (!messages || messages.length === 0) {
-      messagesContainer.innerHTML = '<div class="text-center py-12 text-gray-400 text-xs">' +
-        'No messages in this conversation yet. Send a reply below to begin.' +
+      messagesContainer.innerHTML = '<div class="text-center py-16 text-gray-400 text-xs flex flex-col items-center">' +
+        '<div class="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mb-3">' +
+        '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' +
+        '</div>' +
+        '<p class="font-bold text-gray-700 text-sm">No messages in this conversation yet</p>' +
+        '<p class="text-gray-400 mt-1 max-w-xs">Type your reply below to start the conversation with the client in real time.</p>' +
         '</div>';
       return;
     }
@@ -361,13 +399,16 @@
     var html = '';
     messages.forEach(function(m) {
       var isMe = (m.senderType === 'OWNER');
+      var senderLabel = isMe ? 'You (Owner)' : (m.senderName || 'Customer');
+      var timeStr = formatTime(m.createdAt);
+
       html += '<div class="flex flex-col ' + (isMe ? 'items-end' : 'items-start') + '">';
       html += '<div class="flex items-center gap-1.5 mb-1 text-[11px] text-gray-400">';
-      html += '<span class="font-semibold text-gray-700">' + (isMe ? 'You (Owner)' : escapeHtml(m.senderName)) + '</span>';
+      html += '<span class="font-semibold text-gray-700">' + escapeHtml(senderLabel) + '</span>';
       html += '<span>•</span>';
-      html += '<span>' + formatTime(m.createdAt) + '</span>';
+      html += '<span>' + timeStr + '</span>';
       html += '</div>';
-      html += '<div class="max-w-[75%] px-4 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ' +
+      html += '<div class="max-w-[75%] px-4 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-2xs ' +
         (isMe ? 'bg-primary-600 text-white rounded-tr-xs' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-xs') + '">';
       html += escapeHtml(m.message);
       html += '</div>';
@@ -397,18 +438,20 @@
     input.value = '';
 
     var threadId = activeThread.threadId;
-    var recipientEmail = activeThread.customerEmail || activeThread.senderEmail || (threadId.startsWith('inquiry_') ? threadId.replace('inquiry_', '') : null);
+    var isBooking = threadId.startsWith('booking_');
+    var recipientEmail = activeThread.participantEmail || activeThread.customerEmail || activeThread.senderEmail || (threadId.startsWith('inquiry_') ? threadId.replace('inquiry_', '') : null);
 
     try {
       var body = {
+        tenantId: tenantId,
         threadId: threadId,
         recipientEmail: recipientEmail,
         senderType: 'OWNER',
         message: text
       };
 
-      if (threadId.startsWith('booking_')) {
-        body.bookingId = threadId.replace('booking_', '');
+      if (isBooking) {
+        body.bookingId = activeThread.bookingId || threadId.replace('booking_', '');
       } else {
         body.visitorEmail = recipientEmail;
       }
