@@ -514,6 +514,33 @@ class NotificationsService {
       }
     }
 
+    if (threadId && threadId.startsWith("staff_")) {
+      if (senderType === "STAFF") {
+        await this.createInApp({
+          tenantId,
+          role: "OWNER",
+          title: `New Team Message from ${senderName}`,
+          message: message.length > 80 ? message.slice(0, 80) + "..." : message,
+          type: "CHAT_MESSAGE",
+          link: `/dashboard/chat?threadId=${encodeURIComponent(threadId)}`,
+          userEmail: recipientEmail,
+          metadata: { threadId, senderType, senderName, tenantSlug },
+        });
+      } else {
+        await this.createInApp({
+          tenantId,
+          role: "STAFF",
+          title: `New Team Message from ${senderName}`,
+          message: message.length > 80 ? message.slice(0, 80) + "..." : message,
+          type: "CHAT_MESSAGE",
+          link: `/staff/dashboard?tab=chat`,
+          userEmail: recipientEmail,
+          metadata: { threadId, senderType, senderName, tenantSlug },
+        });
+      }
+      return;
+    }
+
     if (senderType === "CUSTOMER" || senderType === "VISITOR" || isRecipientOwner) {
       // Alert Owner -> Route to Owner Messages Hub with thread pre-selected
       await this.createInApp({
@@ -546,6 +573,62 @@ class NotificationsService {
   }
 
   // ─── Direct Email & SMS Senders ──────────────────────────────────────────
+
+  async sendStaffCredentialsEmail({ to, staffName, tenantName, loginUrl, email, temporaryPassword, tenantId }) {
+    const subject = `Welcome to the Team! Staff Portal Login Credentials - ${tenantName}`;
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 28px; border: 1px solid #e5e7eb; border-radius: 16px; background: #ffffff;">
+        <div style="text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f3f4f6;">
+          <span style="display: inline-block; background: #eef2ff; color: #4f46e5; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 12px; border-radius: 9999px; margin-bottom: 10px;">Official Staff Portal Access</span>
+          <h1 style="color: #111827; margin: 0; font-size: 22px; font-weight: 800;">${tenantName}</h1>
+          <p style="color: #6b7280; font-size: 13px; margin: 4px 0 0 0;">Specialist & Staff Workspace</p>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 16px; font-weight: 700; color: #1f2937; margin: 0 0 8px 0;">Hello ${staffName},</h2>
+          <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin: 0;">
+            You have been granted access to the official <strong>Staff Member Portal</strong> for <strong>${tenantName}</strong>. 
+            You can now sign in to view your assigned appointments, manage your working schedule, mark days off, and chat directly with your clients and salon owner.
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin: 0 0 14px 0;">Your Login Credentials</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; width: 140px;">Portal Login URL:</td>
+              <td style="padding: 6px 0; font-weight: 600;"><a href="${loginUrl}" style="color: #4f46e5; text-decoration: none;">${loginUrl}</a></td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b;">Username / Email:</td>
+              <td style="padding: 6px 0; font-weight: 600; color: #0f172a;"><code style="background: #ffffff; padding: 3px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace;">${email}</code></td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b;">Temporary Password:</td>
+              <td style="padding: 6px 0; font-weight: 700; color: #b91c1c;"><code style="background: #ffffff; padding: 3px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace; font-size: 15px;">${temporaryPassword}</code></td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 28px;">
+          <a href="${loginUrl}" style="display: inline-block; background: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 10px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">Sign In to Staff Portal &rarr;</a>
+        </div>
+
+        <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
+          <p style="color: #92400e; font-size: 12px; margin: 0; line-height: 1.5;">
+            <strong>Important Security Notice:</strong> This is a dedicated Staff login. Public registration for staff is disabled. Please change your password after logging in via your Staff Profile.
+          </p>
+        </div>
+
+        <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+          © ${new Date().getFullYear()} ${tenantName} &bull; Appointment Booking System
+        </p>
+      </div>
+    `;
+    await this._send({ to, subject, html, tenantId, type: "STAFF_CREDENTIALS" }).catch(e => {
+      console.warn("Staff credentials email failed:", e.message);
+    });
+  }
 
   async sendBookingConfirmation(bookingId) {
     const booking = await prisma.booking.findUnique({

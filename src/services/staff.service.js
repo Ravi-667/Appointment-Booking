@@ -1,4 +1,5 @@
 const prisma = require("../utils/prisma.client");
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function makeError(msg, status) { const e = new Error(msg); e.status = status; return e; }
 
 class StaffService {
@@ -19,11 +20,27 @@ class StaffService {
   async findAll(tenantId, includeInactive = false) {
     const where = { tenantId };
     if (!includeInactive) where.isActive = true;
-    return prisma.staff.findMany({
+    const staffList = await prisma.staff.findMany({
       where,
       include: { staffServices: { include: { service: true } } },
       orderBy: { name: "asc" },
     });
+
+    try {
+      if (UUID_REGEX.test(tenantId) && prisma.user && typeof prisma.user.findMany === "function") {
+        const staffUsers = await prisma.user.findMany({
+          where: { tenantId, role: "STAFF" },
+          select: { id: true, email: true, isActive: true },
+        });
+        const userEmailSet = new Set(staffUsers.map(u => (u.email || "").toLowerCase().trim()));
+        return staffList.map(s => ({
+          ...s,
+          hasPortalAccess: userEmailSet.has((s.email || "").toLowerCase().trim()),
+        }));
+      }
+    } catch {}
+
+    return staffList;
   }
 
   async findOne(tenantId, id) {
@@ -146,7 +163,133 @@ class StaffService {
       console.warn("Staff accepted notification error:", e.message);
     });
 
+    // Automatically provision staff portal credentials for newly accepted staff
+    if (application.email && UUID_REGEX.test(tenantId) && UUID_REGEX.test(staff.id)) {
+      await this.provisionStaffCredentials(tenantId, staff.id, {
+        email: application.email,
+        notes,
+      }).catch(e => {
+        console.warn("Staff auto-provision credentials error:", e.message);
+      });
+    }
+
     return staff;
+  }
+
+  /**
+   * Provision or reset staff portal login credentials.
+   * Generates or sets custom credentials, creates/updates User account (role: STAFF),
+   * sends the credentials via email, and sends an internal chat message between Owner and Staff.
+   */
+  async provisionStaffCredentials(tenantId, staffId, { email: customEmail, password: customPassword, io, originUrl } = {}) {
+    if (!tenantId) throw makeError("tenantId is required", 400);
+    const where = (UUID_REGEX.test(staffId) && UUID_REGEX.test(tenantId))
+      ? { id: staffId, tenantId }
+      : { id: staffId };
+    const staff = await prisma.staff.findFirst({
+      where,
+      include: { tenant: true },
+    });
+    if (!staff) throw makeError("Staff member not found", 404);
+
+    const email = (customEmail || staff.email || "").toLowerCase().trim();
+    if (!email) throw makeError("A valid email address is required to provide staff login credentials", 400);
+
+    // Generate secure readable temporary password if not provided
+    const tempPassword = customPassword && customPassword.trim()
+      ? customPassword.trim()
+      : `Staff@${(staff.tenant?.slug || "portal").replace(/[^a-zA-Z0-9]/g, "")}2026!`;
+
+    const bcrypt = require("bcrypt");
+    const passwordHash = await bcrypt.hash(tempPassword, 12);
+
+    let userRecord = null;
+    const existingUser = await prisma.user.findFirst({ where: { email } });
+    if (existingUser) {
+      userRecord = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          tenantId,
+          role: "STAFF",
+          name: staff.name,
+          passwordHash,
+          emailVerified: true,
+          isActive: true,
+        },
+      });
+    } else {
+      userRecord = await prisma.user.create({
+        data: {
+          tenantId,
+          email,
+          name: staff.name,
+          role: "STAFF",
+          passwordHash,
+          emailVerified: true,
+          isActive: true,
+        },
+      });
+    }
+
+    // Update staff email if different
+    if (staff.email !== email) {
+      await prisma.staff.update({ where: { id: staffId }, data: { email } });
+    }
+
+    const loginUrl = originUrl ? `${originUrl}/login` : "/login";
+
+    // 1. Send Credentials via Email
+    const notificationsService = require("./notifications.service");
+    await notificationsService.sendStaffCredentialsEmail({
+      to: email,
+      staffName: staff.name,
+      tenantName: staff.tenant?.name || "Our Business",
+      loginUrl,
+      email,
+      temporaryPassword: tempPassword,
+      tenantId,
+    }).catch(e => console.warn("Staff credentials email warning:", e.message));
+
+    // 2. Post Credentials in dedicated Owner-Staff Internal Chat Thread
+    const chatService = require("./chat.service");
+    const threadId = `staff_${staff.id}`;
+    const credMessage = `🔐 Staff Portal Login Credentials Generated\n\nHello ${staff.name},\nYour dedicated Staff Member Portal account is ready for ${staff.tenant?.name || "our team"}.\n\n• Portal Login: ${loginUrl}\n• Email / Username: ${email}\n• Temporary Password: ${tempPassword}\n\nPlease sign in at /login to view your assigned client appointments, manage your schedule, and chat directly with your clients and salon owner.`;
+
+    await chatService.sendMessage({
+      tenantId,
+      threadId,
+      staffId: staff.id,
+      recipientEmail: email,
+      senderType: "OWNER",
+      senderName: staff.tenant?.name || "Business Owner",
+      senderEmail: staff.tenant?.email || "owner@bookingapp.local",
+      message: credMessage,
+      io,
+    }).catch(e => console.warn("Staff credentials chat message warning:", e.message));
+
+    // 3. Create In-App Notification for Staff User
+    if (prisma.inAppNotification && userRecord) {
+      await prisma.inAppNotification.create({
+        data: {
+          userId: userRecord.id,
+          tenantId,
+          type: "STAFF_CREDENTIALS_GENERATED",
+          title: "Welcome to the Staff Portal!",
+          message: `Your login account for ${staff.tenant?.name} is ready. Welcome to the team!`,
+          link: "/staff/dashboard",
+          isRead: false,
+        },
+      }).catch(() => {});
+    }
+
+    return {
+      success: true,
+      staffId: staff.id,
+      staffName: staff.name,
+      email,
+      temporaryPassword: tempPassword,
+      userId: userRecord.id,
+    };
   }
 
   async rejectApplication(tenantId, applicationId, notes) {

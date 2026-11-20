@@ -113,6 +113,7 @@ app.use("/api/v1/notifications", require("./routes/notifications.routes"));
 
 // ─── View Routes (EJS pages) ────────────────────────────────────────────────
 app.use("/", require("./routes/views.routes"));
+app.use("/", require("./routes/staff-portal.routes"));
 
 // ─── 404 handler ────────────────────────────────────────────────────────────
 app.use((req, res) => {

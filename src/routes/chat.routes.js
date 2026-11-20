@@ -25,9 +25,10 @@ async function optionalAuth(req, res, next) {
 // Send a chat message
 router.post("/messages", optionalAuth, async (req, res, next) => {
   try {
-    const isExplicitVisitorOrCustomer = req.body.senderType === "VISITOR" || req.body.senderType === "CUSTOMER";
-    const isOwner = !isExplicitVisitorOrCustomer && (req.user?.role === "OWNER" || !!req.user?.tenantId || req.body.senderType === "OWNER");
-    let tenantId = req.body.tenantId || (isOwner ? req.user?.tenantId : null);
+    const isStaff = req.user?.role === "STAFF" || req.body.senderType === "STAFF";
+    const isExplicitVisitorOrCustomer = !isStaff && (req.body.senderType === "VISITOR" || req.body.senderType === "CUSTOMER");
+    const isOwner = !isStaff && !isExplicitVisitorOrCustomer && (req.user?.role === "OWNER" || req.user?.role === "BUSINESS_OWNER" || !!req.user?.tenantId || req.body.senderType === "OWNER");
+    let tenantId = req.body.tenantId || (req.user?.tenantId ? req.user.tenantId : null);
 
     if (!tenantId && req.user?.id) {
       const u = await prisma.user.findUnique({ where: { id: req.user.id }, select: { tenantId: true } });
@@ -43,12 +44,29 @@ router.post("/messages", optionalAuth, async (req, res, next) => {
       if (b) tenantId = b.tenantId;
     }
 
-    const senderType = isOwner ? "OWNER" : (req.body.senderType || "VISITOR");
-    const senderName = (isOwner ? req.user?.name : req.body.senderName) || (isOwner ? "Salon Owner" : "Customer");
-    const senderEmail = (isOwner ? req.user?.email : req.body.senderEmail) || (isOwner ? "owner@salon.com" : "customer@example.com");
+    // If tenantId missing but staffId or staff_ threadId provided
+    if (!tenantId && (req.body.staffId || (req.body.threadId && req.body.threadId.startsWith("staff_")))) {
+      const sId = req.body.staffId || req.body.threadId.replace("staff_", "");
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_REGEX.test(sId)) {
+        try {
+          const s = await prisma.staff.findUnique({ where: { id: sId } });
+          if (s) tenantId = s.tenantId;
+        } catch {}
+      }
+    }
+
+    const senderType = isStaff ? "STAFF" : (isOwner ? "OWNER" : (req.body.senderType || "VISITOR"));
+    const defaultName = isStaff ? "Staff Specialist" : (isOwner ? "Salon Owner" : "Customer");
+    const defaultEmail = isStaff ? "staff@salon.com" : (isOwner ? "owner@salon.com" : "customer@example.com");
+
+    const senderName = (isStaff || isOwner ? req.user?.name : req.body.senderName) || req.body.senderName || defaultName;
+    const senderEmail = (isStaff || isOwner ? req.user?.email : req.body.senderEmail) || req.body.senderEmail || defaultEmail;
 
     const payload = {
       tenantId,
+      threadId: req.body.threadId || null,
+      staffId: req.body.staffId || null,
       bookingId: req.body.bookingId || null,
       visitorEmail: req.body.visitorEmail || null,
       recipientEmail: req.body.recipientEmail || null,
@@ -78,14 +96,20 @@ router.get("/messages", optionalAuth, async (req, res, next) => {
       if (u?.tenantId) tenantId = u.tenantId;
     }
 
-    // If tenantId is not passed but bookingId or booking_ threadId is, resolve tenantId
-    if (!tenantId && (bookingId || (threadId && threadId.startsWith("booking_")))) {
-      const bId = bookingId || threadId.replace("booking_", "");
+    // If tenantId is not passed but bookingId, booking_ or staff_ threadId is, resolve tenantId
+    if (!tenantId && (bookingId || (threadId && (threadId.startsWith("booking_") || threadId.startsWith("staff_"))))) {
+      const isStaffThread = threadId && threadId.startsWith("staff_");
+      const targetId = isStaffThread ? threadId.replace("staff_", "") : (bookingId || threadId.replace("booking_", ""));
       const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (UUID_REGEX.test(bId)) {
+      if (UUID_REGEX.test(targetId)) {
         try {
-          const b = await prisma.booking.findUnique({ where: { id: bId } });
-          if (b) tenantId = b.tenantId;
+          if (isStaffThread) {
+            const s = await prisma.staff.findUnique({ where: { id: targetId } });
+            if (s) tenantId = s.tenantId;
+          } else {
+            const b = await prisma.booking.findUnique({ where: { id: targetId } });
+            if (b) tenantId = b.tenantId;
+          }
         } catch {}
       }
     }
@@ -142,20 +166,35 @@ router.patch("/read", optionalAuth, async (req, res, next) => {
       if (u?.tenantId) tenantId = u.tenantId;
     }
 
-    if (!tenantId && threadId && threadId.startsWith("booking_")) {
-      const b = await prisma.booking.findUnique({ where: { id: threadId.replace("booking_", "") } });
-      if (b) tenantId = b.tenantId;
+    if (!tenantId && threadId && (threadId.startsWith("booking_") || threadId.startsWith("staff_"))) {
+      const isStaffThread = threadId.startsWith("staff_");
+      const targetId = isStaffThread ? threadId.replace("staff_", "") : threadId.replace("booking_", "");
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_REGEX.test(targetId)) {
+        try {
+          if (isStaffThread) {
+            const s = await prisma.staff.findUnique({ where: { id: targetId } });
+            if (s) tenantId = s.tenantId;
+          } else {
+            const b = await prisma.booking.findUnique({ where: { id: targetId } });
+            if (b) tenantId = b.tenantId;
+          }
+        } catch {}
+      }
     }
 
     if (!tenantId || !threadId) {
       return res.status(400).json({ message: "tenantId and threadId are required" });
     }
 
-    const isOwner = req.user?.role === "OWNER" || !!req.user?.tenantId;
+    const isStaff = req.user?.role === "STAFF";
+    const isOwner = !isStaff && (req.user?.role === "OWNER" || req.user?.role === "BUSINESS_OWNER" || !!req.user?.tenantId);
+    const readByType = isStaff ? "STAFF" : (isOwner ? "OWNER" : "CUSTOMER");
+
     const result = await chatService.markAsRead({
       tenantId,
       threadId,
-      readByType: isOwner ? "OWNER" : "CUSTOMER",
+      readByType,
     });
 
     res.json(result);

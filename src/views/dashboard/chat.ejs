@@ -25,20 +25,26 @@
     <!-- ── Left Sidebar: Threads List (md:col-span-5 lg:col-span-4) ── -->
     <div class="md:col-span-5 lg:col-span-4 border-r border-gray-200 flex flex-col h-full bg-gray-50/40">
       
-      <!-- Tabs (Inquiries vs Bookings) -->
+      <!-- Tabs (Inquiries vs Bookings vs Staff Team) -->
       <div class="p-3 border-b border-gray-200 bg-white">
         <div class="flex rounded-xl bg-gray-100 p-1 text-xs font-semibold gap-1">
           <button type="button" id="tab-inquiries-btn" onclick="switchTab('INQUIRIES')"
-            class="flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-xs font-semibold cursor-pointer">
-            <span>General Inquiries</span>
+            class="flex-1 py-2 px-1.5 rounded-lg text-center transition flex items-center justify-center gap-1 bg-white text-gray-900 shadow-xs font-semibold cursor-pointer">
+            <span>Inquiries</span>
             <span id="tab-inquiries-count" class="px-1.5 py-0.2 text-[10px] rounded-full bg-gray-200 text-gray-700 font-bold">0</span>
             <span id="tab-inquiries-badge" class="hidden px-1.5 py-0.2 text-[10px] rounded-full bg-red-600 text-white font-bold animate-pulse">0</span>
           </button>
           <button type="button" id="tab-bookings-btn" onclick="switchTab('BOOKINGS')"
-            class="flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900 font-medium cursor-pointer">
-            <span>Booking Chats</span>
+            class="flex-1 py-2 px-1.5 rounded-lg text-center transition flex items-center justify-center gap-1 text-gray-500 hover:text-gray-900 font-medium cursor-pointer">
+            <span>Bookings</span>
             <span id="tab-bookings-count" class="px-1.5 py-0.2 text-[10px] rounded-full bg-gray-200 text-gray-700 font-bold">0</span>
             <span id="tab-bookings-badge" class="hidden px-1.5 py-0.2 text-[10px] rounded-full bg-red-600 text-white font-bold animate-pulse">0</span>
+          </button>
+          <button type="button" id="tab-staff-btn" onclick="switchTab('STAFF')"
+            class="flex-1 py-2 px-1.5 rounded-lg text-center transition flex items-center justify-center gap-1 text-gray-500 hover:text-gray-900 font-medium cursor-pointer">
+            <span>Staff Team</span>
+            <span id="tab-staff-count" class="px-1.5 py-0.2 text-[10px] rounded-full bg-gray-200 text-gray-700 font-bold">0</span>
+            <span id="tab-staff-badge" class="hidden px-1.5 py-0.2 text-[10px] rounded-full bg-red-600 text-white font-bold animate-pulse">0</span>
           </button>
         </div>
 
@@ -128,17 +134,20 @@
 (function() {
   var tenantId = "<%= tenant.id %>";
   var initialThreadId = "<%= initialThreadId || '' %>";
-  var currentTab = "INQUIRIES"; // 'INQUIRIES' or 'BOOKINGS'
-  var threadsData = { inquiries: [], bookings: [] };
+  var currentTab = "INQUIRIES"; // 'INQUIRIES', 'BOOKINGS', or 'STAFF'
+  var threadsData = { inquiries: [], bookings: [], staff: [] };
   var activeThread = null;
   var socket = null;
 
   var tabInquiriesBtn = document.getElementById("tab-inquiries-btn");
   var tabBookingsBtn = document.getElementById("tab-bookings-btn");
+  var tabStaffBtn = document.getElementById("tab-staff-btn");
   var tabInquiriesCount = document.getElementById("tab-inquiries-count");
   var tabBookingsCount = document.getElementById("tab-bookings-count");
+  var tabStaffCount = document.getElementById("tab-staff-count");
   var tabInquiriesBadge = document.getElementById("tab-inquiries-badge");
   var tabBookingsBadge = document.getElementById("tab-bookings-badge");
+  var tabStaffBadge = document.getElementById("tab-staff-badge");
   var searchInput = document.getElementById("thread-search");
   var threadsContainer = document.getElementById("threads-container");
 
@@ -157,12 +166,21 @@
 
   window.switchTab = function(tab) {
     currentTab = tab;
+    var activeClass = "flex-1 py-2 px-1.5 rounded-lg text-center transition flex items-center justify-center gap-1 bg-white text-gray-900 shadow-xs font-semibold cursor-pointer";
+    var inactiveClass = "flex-1 py-2 px-1.5 rounded-lg text-center transition flex items-center justify-center gap-1 text-gray-500 hover:text-gray-900 font-medium cursor-pointer";
+
     if (tab === "INQUIRIES") {
-      tabInquiriesBtn.className = "flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-xs font-semibold cursor-pointer";
-      tabBookingsBtn.className = "flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900 font-medium cursor-pointer";
+      tabInquiriesBtn.className = activeClass;
+      tabBookingsBtn.className = inactiveClass;
+      tabStaffBtn.className = inactiveClass;
+    } else if (tab === "BOOKINGS") {
+      tabBookingsBtn.className = activeClass;
+      tabInquiriesBtn.className = inactiveClass;
+      tabStaffBtn.className = inactiveClass;
     } else {
-      tabBookingsBtn.className = "flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 bg-white text-gray-900 shadow-xs font-semibold cursor-pointer";
-      tabInquiriesBtn.className = "flex-1 py-2 px-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 text-gray-500 hover:text-gray-900 font-medium cursor-pointer";
+      tabStaffBtn.className = activeClass;
+      tabInquiriesBtn.className = inactiveClass;
+      tabBookingsBtn.className = inactiveClass;
     }
     renderThreadsList();
   };
@@ -187,14 +205,14 @@
   }
 
   function renderThreadsList() {
-    var list = (currentTab === "INQUIRIES") ? (threadsData.inquiries || []) : (threadsData.bookings || []);
+    var list = (currentTab === "INQUIRIES") ? (threadsData.inquiries || []) : ((currentTab === "BOOKINGS") ? (threadsData.bookings || []) : (threadsData.staff || []));
     var query = (searchInput.value || '').toLowerCase().trim();
 
     if (query) {
       list = list.filter(function(t) {
         var name = (t.participantName || t.customerName || t.senderName || t.title || '').toLowerCase();
         var email = (t.participantEmail || t.customerEmail || t.senderEmail || '').toLowerCase();
-        var sName = (t.booking?.service?.name || '').toLowerCase();
+        var sName = (t.booking?.service?.name || t.staff?.roleTitle || '').toLowerCase();
         var msg = (typeof t.lastMessage === 'string' ? t.lastMessage : (t.lastMessage ? t.lastMessage.message : '')).toLowerCase();
         return name.includes(query) || email.includes(query) || sName.includes(query) || msg.includes(query);
       });
@@ -213,7 +231,7 @@
           '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>' +
           '</a>' +
           '</div>';
-      } else {
+      } else if (currentTab === "BOOKINGS") {
         threadsContainer.innerHTML = '<div class="text-center py-12 px-4 text-gray-500 text-xs flex flex-col items-center">' +
           '<div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">' +
           '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>' +
@@ -225,6 +243,18 @@
           '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
           '</a>' +
           '</div>';
+      } else {
+        threadsContainer.innerHTML = '<div class="text-center py-12 px-4 text-gray-500 text-xs flex flex-col items-center">' +
+          '<div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">' +
+          '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' +
+          '</div>' +
+          '<p class="font-bold text-gray-800 text-sm">No staff members on team yet</p>' +
+          '<p class="text-gray-400 mt-1 max-w-xs leading-relaxed">Add staff members to your business to enable internal team chat, provide login credentials, and assign appointments.</p>' +
+          '<a href="/dashboard/staff" class="mt-3.5 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-200">' +
+          '<span>Manage Staff Members</span>' +
+          '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
+          '</a>' +
+          '</div>';
       }
       return;
     }
@@ -232,7 +262,7 @@
     var html = '';
     list.forEach(function(t) {
       var isSelected = activeThread && (activeThread.threadId === t.threadId);
-      var name = t.participantName || t.customerName || t.senderName || t.title || (t.threadId.replace('inquiry_', '').replace('booking_', ''));
+      var name = t.participantName || t.customerName || t.senderName || t.title || (t.threadId.replace('inquiry_', '').replace('booking_', '').replace('staff_', ''));
       var email = t.participantEmail || t.customerEmail || t.senderEmail || '';
       var initial = (name.charAt(0) || '?').toUpperCase();
       var snippet = (typeof t.lastMessage === 'string' ? t.lastMessage : (t.lastMessage ? t.lastMessage.message : '')) || 'No messages yet';
@@ -254,6 +284,9 @@
         var sName = t.booking?.service?.name || 'Appointment Consultation';
         var statusBadge = t.booking?.status ? '<span class="text-[9px] px-1.5 py-0.2 rounded font-semibold bg-gray-100 text-gray-600 uppercase">' + t.booking.status + '</span>' : '';
         html += '<div class="flex items-center gap-1.5 text-[11px] text-primary-700 font-medium truncate mb-0.5"><span>🗓 ' + escapeHtml(sName) + '</span>' + statusBadge + '</div>';
+      } else if (t.type === "STAFF" || t.threadId.startsWith('staff_')) {
+        var role = t.staff?.roleTitle || 'Specialist';
+        html += '<p class="text-[11px] text-indigo-700 font-medium truncate mb-0.5">👤 ' + escapeHtml(role) + (email ? ' &bull; ' + escapeHtml(email) : '') + '</p>';
       } else {
         html += '<p class="text-[11px] text-gray-500 truncate mb-0.5">✉️ ' + escapeHtml(email || 'Website Visitor') + '</p>';
       }
@@ -278,13 +311,16 @@
       var data = await res.json();
       threadsData.inquiries = data.inquiries || [];
       threadsData.bookings = data.bookings || [];
+      threadsData.staff = data.staff || [];
 
       // Update badge counters & tab total counts
       var unreadInq = threadsData.inquiries.reduce(function(acc, t){ return acc + (t.unreadCount || 0); }, 0);
       var unreadBkg = threadsData.bookings.reduce(function(acc, t){ return acc + (t.unreadCount || 0); }, 0);
+      var unreadStf = threadsData.staff.reduce(function(acc, t){ return acc + (t.unreadCount || 0); }, 0);
 
       if (tabInquiriesCount) tabInquiriesCount.textContent = threadsData.inquiries.length;
       if (tabBookingsCount) tabBookingsCount.textContent = threadsData.bookings.length;
+      if (tabStaffCount) tabStaffCount.textContent = threadsData.staff.length;
 
       if (unreadInq > 0) {
         tabInquiriesBadge.textContent = unreadInq;
@@ -300,6 +336,13 @@
         tabBookingsBadge.classList.add('hidden');
       }
 
+      if (unreadStf > 0) {
+        tabStaffBadge.textContent = unreadStf;
+        tabStaffBadge.classList.remove('hidden');
+      } else {
+        tabStaffBadge.classList.add('hidden');
+      }
+
       // If initial thread specified, auto open it
       if (initialThreadId && !activeThread) {
         selectThread(initialThreadId);
@@ -312,17 +355,20 @@
   }
 
   window.selectThread = async function(threadId) {
-    // Find thread in either category
+    // Find thread in any category
     var found = (threadsData.inquiries || []).find(function(t){ return t.threadId === threadId; }) ||
-                (threadsData.bookings || []).find(function(t){ return t.threadId === threadId; });
+                (threadsData.bookings || []).find(function(t){ return t.threadId === threadId; }) ||
+                (threadsData.staff || []).find(function(t){ return t.threadId === threadId; });
 
     activeThread = found || { threadId: threadId };
 
-    // Auto-switch tab if thread belongs to the other category
+    // Auto-switch tab if thread belongs to another category
     if (threadId.startsWith('booking_') && currentTab !== 'BOOKINGS') {
       switchTab('BOOKINGS');
     } else if (threadId.startsWith('inquiry_') && currentTab !== 'INQUIRIES') {
       switchTab('INQUIRIES');
+    } else if (threadId.startsWith('staff_') && currentTab !== 'STAFF') {
+      switchTab('STAFF');
     } else {
       renderThreadsList();
     }
@@ -330,11 +376,11 @@
     emptyState.classList.add('hidden');
     activeState.classList.remove('hidden');
 
-    var displayName = activeThread.participantName || activeThread.customerName || activeThread.senderName || activeThread.title || threadId.replace('inquiry_', '').replace('booking_', '');
+    var displayName = activeThread.participantName || activeThread.customerName || activeThread.senderName || activeThread.title || threadId.replace('inquiry_', '').replace('booking_', '').replace('staff_', '');
     var displayEmail = activeThread.participantEmail || activeThread.customerEmail || activeThread.senderEmail || '';
 
     activeName.textContent = displayName;
-    activeSubtitle.textContent = displayEmail || (threadId.startsWith('booking_') ? 'Booked Customer' : 'Website Visitor');
+    activeSubtitle.textContent = displayEmail || (threadId.startsWith('booking_') ? 'Booked Customer' : (threadId.startsWith('staff_') ? 'Staff Specialist' : 'Website Visitor'));
     activeAvatar.textContent = (displayName.charAt(0) || '?').toUpperCase();
 
     if (threadId.startsWith('booking_')) {
@@ -342,6 +388,13 @@
       activeTypeBadge.className = 'px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
       var bId = activeThread.bookingId || threadId.replace('booking_', '');
       activeBookingLink.href = '/dashboard/bookings/' + bId;
+      activeBookingLink.querySelector('span').textContent = 'View Booking Record';
+      activeBookingAction.classList.remove('hidden');
+    } else if (threadId.startsWith('staff_')) {
+      activeTypeBadge.textContent = 'Staff Team Chat';
+      activeTypeBadge.className = 'px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200';
+      activeBookingLink.href = '/dashboard/staff';
+      activeBookingLink.querySelector('span').textContent = 'Staff & Credentials';
       activeBookingAction.classList.remove('hidden');
     } else {
       activeTypeBadge.textContent = 'General Inquiry';
@@ -439,6 +492,7 @@
 
     var threadId = activeThread.threadId;
     var isBooking = threadId.startsWith('booking_');
+    var isStaff = threadId.startsWith('staff_');
     var recipientEmail = activeThread.participantEmail || activeThread.customerEmail || activeThread.senderEmail || (threadId.startsWith('inquiry_') ? threadId.replace('inquiry_', '') : null);
 
     try {
@@ -452,6 +506,8 @@
 
       if (isBooking) {
         body.bookingId = activeThread.bookingId || threadId.replace('booking_', '');
+      } else if (isStaff) {
+        body.staffId = activeThread.staffId || threadId.replace('staff_', '');
       } else {
         body.visitorEmail = recipientEmail;
       }

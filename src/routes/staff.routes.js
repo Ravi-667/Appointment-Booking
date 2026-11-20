@@ -62,6 +62,26 @@ router.get("/:id", authenticate, async (req, res, next) => {
   try { res.json(await staffService.findOne(req.user.tenantId, req.params.id)); } catch (e) { next(e); }
 });
 
+router.post("/:id/credentials", authenticate, requireRole("BUSINESS_OWNER"), async (req, res, next) => {
+  try {
+    const originUrl = `${req.protocol}://${req.get("host")}`;
+    const io = req.app.get("io");
+    const result = await staffService.provisionStaffCredentials(
+      req.user.tenantId,
+      req.params.id,
+      {
+        email: req.body.email,
+        password: req.body.password,
+        io,
+        originUrl,
+      }
+    );
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.patch("/:id", authenticate, requireRole("BUSINESS_OWNER"), async (req, res, next) => {
   try { res.json(await staffService.update(req.user.tenantId, req.params.id, req.body)); } catch (e) { next(e); }
 });

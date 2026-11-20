@@ -125,11 +125,39 @@
                 <span class="text-xs text-gray-400 italic">No services assigned yet</span>
               <% } %>
             </div>
+            <!-- Portal Login Status Badge -->
+            <div class="mt-2.5 flex items-center justify-between">
+              <% if (s.hasPortalAccess) { %>
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                  <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                  Portal Login Active
+                </span>
+              <% } else { %>
+                <span class="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                  No Portal Login Yet
+                </span>
+              <% } %>
+            </div>
           </div>
 
           <!-- Actions -->
-          <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-            <span class="text-gray-400 text-[11px]">Since <%= new Date(s.createdAt).toLocaleDateString([], { month:'short', year:'numeric' }) %></span>
+          <div class="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-1.5">
+              <a href="/dashboard/chat?threadId=staff_<%= s.id %>"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg border border-primary-200 transition"
+                title="Chat directly with <%= s.name %>">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                <span>Chat</span>
+              </a>
+
+              <button type="button" onclick="openCredentialsModal('<%= s.id %>', '<%= s.name.replace(/'/g, &quot;\\'&quot;) %>', '<%= (s.email || &quot;&quot;).replace(/'/g, &quot;\\'&quot;) %>', <%= !!s.hasPortalAccess %>)"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition cursor-pointer"
+                title="Provide or reset staff login credentials">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                <span><%= s.hasPortalAccess ? 'Reset Credentials' : 'Give Login Access' %></span>
+              </button>
+            </div>
+
             <div>
               <% if (s.isActive) { %>
                 <form action="/dashboard/staff/<%= s.id %>/deactivate" method="POST" onsubmit="return confirm('Deactivate <%= s.name %>? They will not appear in slot bookings.')">
@@ -391,6 +419,67 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     Staff Credentials Provisioning Modal
+════════════════════════════════════════════════════════════ -->
+<div id="staff-credentials-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" style="display: none;">
+  <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg overflow-hidden animate-fade-in" onclick="event.stopPropagation()">
+    
+    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+      <div>
+        <h2 id="cred-modal-title" class="text-base font-bold text-gray-900">Provide Staff Login Access</h2>
+        <p id="cred-modal-subtitle" class="text-xs text-gray-500 mt-0.5">Send portal login credentials via Email and direct Team Chat</p>
+      </div>
+      <button type="button" onclick="closeCredentialsModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold p-1 cursor-pointer">&times;</button>
+    </div>
+
+    <form id="staff-credentials-form" method="POST" class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Staff Member</label>
+        <input type="text" id="cred-name-input" readonly
+          class="w-full px-3.5 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Staff Login Email Address *</label>
+        <input type="email" id="cred-email-input" name="email" required placeholder="priya@example.com"
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        <p class="text-[11px] text-gray-500 mt-1">This email address will be used to log in at /login.</p>
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-xs font-semibold text-gray-700">Custom Temporary Password *</label>
+          <button type="button" onclick="generateRandomPass()" class="text-[11px] font-semibold text-primary-600 hover:underline cursor-pointer">
+            🎲 Generate Secure Password
+          </button>
+        </div>
+        <input type="text" id="cred-pass-input" name="password" required placeholder="e.g. Staff@Salon2026!"
+          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-primary-500 outline-none">
+      </div>
+
+      <!-- Notice Box -->
+      <div class="p-3.5 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-900 space-y-1.5">
+        <p class="font-bold flex items-center gap-1.5 text-indigo-800">
+          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Dual Delivery via Email & Direct Chat
+        </p>
+        <p class="text-[11px] text-indigo-700 leading-relaxed">
+          The staff member will instantly receive these login credentials in their <strong>Email Inbox</strong> AND in their private <strong>Owner-Staff Website Chat Thread</strong> for permanent access.
+        </p>
+      </div>
+
+      <div class="pt-2 flex justify-end gap-2 border-t border-gray-100">
+        <button type="button" onclick="closeCredentialsModal()" class="px-4 py-2 border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-semibold rounded-lg transition cursor-pointer">Cancel</button>
+        <button type="submit" id="cred-submit-btn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition cursor-pointer flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <span>Send Credentials via Email & Chat</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   // Tab Switching
   window.switchStaffTab = function(tab) {
@@ -446,11 +535,52 @@
     modal.style.display = 'none';
   };
 
+  // Staff Credentials Modal Controller
+  window.openCredentialsModal = function(id, name, email, hasAccess) {
+    var modal = document.getElementById('staff-credentials-modal');
+    var form = document.getElementById('staff-credentials-form');
+    var title = document.getElementById('cred-modal-title');
+    var nameInp = document.getElementById('cred-name-input');
+    var emailInp = document.getElementById('cred-email-input');
+    var passInp = document.getElementById('cred-pass-input');
+
+    form.action = '/dashboard/staff/' + id + '/credentials';
+    title.textContent = hasAccess ? ('Reset Login for ' + name) : ('Provide Login for ' + name);
+    nameInp.value = name;
+    emailInp.value = email || '';
+    
+    // Auto-generate a clean readable secure temporary password
+    var cleanSlug = "<%= (tenant && tenant.slug ? tenant.slug : 'team').replace(/[^a-zA-Z0-9]/g, '') %>";
+    passInp.value = 'Staff@' + (cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1)) + Math.floor(100 + Math.random() * 900) + '!';
+
+    modal.style.display = 'flex';
+    setTimeout(function() {
+      if (!email) emailInp.focus();
+      else passInp.focus();
+    }, 100);
+  };
+
+  window.closeCredentialsModal = function() {
+    var modal = document.getElementById('staff-credentials-modal');
+    modal.style.display = 'none';
+  };
+
+  window.generateRandomPass = function() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    var res = 'Staff@';
+    for (var i = 0; i < 6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    res += '!';
+    document.getElementById('cred-pass-input').value = res;
+  };
+
   // Close modals on Escape key or backdrop click
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       closeAddStaffModal();
       closeHireModal();
+      closeCredentialsModal();
     }
   });
 
@@ -460,6 +590,10 @@
 
   document.getElementById('hire-candidate-modal').addEventListener('click', function(e) {
     if (e.target === this) closeHireModal();
+  });
+
+  document.getElementById('staff-credentials-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeCredentialsModal();
   });
 
   // Auto-switch to applications tab if url has ?tab=applications

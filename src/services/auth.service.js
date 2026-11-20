@@ -11,6 +11,9 @@ function makeError(message, status) {
 
 class AuthService {
   async register({ name, email, password, role }) {
+    if (role === "STAFF") {
+      throw makeError("Staff accounts cannot be registered publicly. Your salon/clinic owner will provision your login credentials.", 403);
+    }
     const existing = await prisma.user.findFirst({ where: { email } });
     if (existing) throw makeError("Email already registered", 409);
 

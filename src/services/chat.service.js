@@ -1,4 +1,5 @@
 const prisma = require("../utils/prisma.client");
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function makeError(message, statusCode = 400) {
   const err = new Error(message);
@@ -10,7 +11,13 @@ class ChatService {
   /**
    * Helper to derive canonical threadId
    */
-  resolveThreadId({ bookingId, visitorEmail, recipientEmail, senderEmail, senderType }) {
+  resolveThreadId({ threadId, staffId, bookingId, visitorEmail, recipientEmail, senderEmail, senderType }) {
+    if (threadId) {
+      return threadId;
+    }
+    if (staffId) {
+      return `staff_${staffId}`;
+    }
     if (bookingId) {
       return `booking_${bookingId}`;
     }
@@ -23,7 +30,7 @@ class ChatService {
     if (senderEmail) {
       return `inquiry_${senderEmail.toLowerCase().trim()}`;
     }
-    throw makeError("Unable to resolve thread ID. Missing bookingId or email", 400);
+    throw makeError("Unable to resolve thread ID. Missing bookingId, staffId, or email", 400);
   }
 
   /**
@@ -31,6 +38,8 @@ class ChatService {
    */
   async sendMessage({
     tenantId,
+    threadId: explicitThreadId,
+    staffId,
     bookingId,
     visitorEmail,
     recipientEmail,
@@ -46,13 +55,15 @@ class ChatService {
     if (!senderName || !senderName.trim()) throw makeError("senderName is required", 400);
     if (!senderEmail || !senderEmail.trim()) throw makeError("senderEmail is required", 400);
 
-    const validTypes = ["CUSTOMER", "OWNER", "VISITOR"];
+    const validTypes = ["CUSTOMER", "OWNER", "VISITOR", "STAFF"];
     const type = (senderType || "VISITOR").toUpperCase();
     if (!validTypes.includes(type)) {
       throw makeError(`Invalid senderType: ${senderType}`, 400);
     }
 
     const threadId = this.resolveThreadId({
+      threadId: explicitThreadId,
+      staffId,
       bookingId,
       visitorEmail,
       recipientEmail,
@@ -75,6 +86,28 @@ class ChatService {
         actualRecipientEmail = booking.tenant?.email || null;
       } else if (type === "OWNER") {
         actualRecipientEmail = booking.customerEmail;
+      }
+    } else if (threadId && threadId.startsWith("staff_") || staffId) {
+      const sId = staffId || (threadId ? threadId.replace("staff_", "") : "");
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (sId && UUID_REGEX.test(sId)) {
+        try {
+          const staff = await prisma.staff.findFirst({
+            where: { id: sId, tenantId },
+            include: { tenant: true },
+          });
+          if (staff) {
+            if (type === "OWNER") {
+              actualRecipientEmail = actualRecipientEmail || staff.email;
+              if (!senderName || senderName === "Salon Owner") senderName = staff.tenant?.name || "Business Owner";
+            } else if (type === "STAFF") {
+              actualRecipientEmail = actualRecipientEmail || staff.tenant?.email;
+              if (!senderName || senderName === "Customer") senderName = staff.name || "Staff Specialist";
+            }
+          }
+        } catch (err) {
+          console.warn("Staff lookup warning in sendMessage:", err.message);
+        }
       }
     } else {
       if (type === "VISITOR") {
@@ -158,9 +191,27 @@ class ChatService {
       });
     }
 
+    // Optional staff details if staff-scoped
+    let staff = null;
+    if (resolvedThreadId.startsWith("staff_")) {
+      const sId = resolvedThreadId.replace("staff_", "");
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_REGEX.test(sId)) {
+        try {
+          staff = await prisma.staff.findFirst({
+            where: { id: sId, tenantId },
+            include: { staffServices: { include: { service: true } } },
+          });
+        } catch (err) {
+          console.warn("Staff lookup in getMessages warning:", err.message);
+        }
+      }
+    }
+
     return {
       threadId: resolvedThreadId,
       booking,
+      staff,
       messages,
     };
   }
@@ -194,22 +245,30 @@ class ChatService {
     for (const msg of messages) {
       if (!threadMap.has(msg.threadId)) {
         const isBooking = msg.threadId.startsWith("booking_");
+        const isStaff = msg.threadId.startsWith("staff_");
         const b = msg.booking;
-        const participantName = isBooking
-          ? (b?.customerName || msg.senderName)
-          : (msg.senderType === "VISITOR" ? msg.senderName : (msg.recipientEmail ? msg.recipientEmail.split("@")[0] : "Prospective Customer"));
-        const participantEmail = isBooking
-          ? (b?.customerEmail || msg.senderEmail)
-          : (msg.senderType === "VISITOR" ? msg.senderEmail : msg.recipientEmail);
+        const participantName = isStaff
+          ? (msg.senderType === "STAFF" ? msg.senderName : (msg.recipientEmail ? msg.recipientEmail.split("@")[0] : "Staff Member"))
+          : (isBooking
+            ? (b?.customerName || msg.senderName)
+            : (msg.senderType === "VISITOR" ? msg.senderName : (msg.recipientEmail ? msg.recipientEmail.split("@")[0] : "Prospective Customer")));
+        const participantEmail = isStaff
+          ? (msg.senderType === "STAFF" ? msg.senderEmail : msg.recipientEmail)
+          : (isBooking
+            ? (b?.customerEmail || msg.senderEmail)
+            : (msg.senderType === "VISITOR" ? msg.senderEmail : msg.recipientEmail));
 
         threadMap.set(msg.threadId, {
           threadId: msg.threadId,
-          type: isBooking ? "BOOKING" : "INQUIRY",
+          type: isStaff ? "STAFF" : (isBooking ? "BOOKING" : "INQUIRY"),
           bookingId: msg.bookingId,
           booking: b || null,
-          title: isBooking
-            ? `${b?.customerName || "Customer"} (${b?.service?.name || "Booking"})`
-            : participantName,
+          staffId: isStaff ? msg.threadId.replace("staff_", "") : null,
+          title: isStaff
+            ? `Team: ${participantName}`
+            : (isBooking
+              ? `${b?.customerName || "Customer"} (${b?.service?.name || "Booking"})`
+              : participantName),
           participantName: participantName,
           participantEmail: participantEmail,
           customerName: participantName,
@@ -227,6 +286,51 @@ class ChatService {
       if (!msg.isRead && msg.senderType !== "OWNER") {
         thread.unreadCount++;
         totalUnread++;
+      }
+    }
+
+    // Include all staff members for internal team chat
+    if (UUID_REGEX.test(tenantId) && prisma.staff && typeof prisma.staff.findMany === "function") {
+      try {
+        const allStaff = await prisma.staff.findMany({
+          where: { tenantId },
+          select: { id: true, name: true, roleTitle: true, email: true, phone: true, isActive: true },
+        });
+
+        if (Array.isArray(allStaff)) {
+          for (const s of allStaff) {
+            const threadId = `staff_${s.id}`;
+            if (!threadMap.has(threadId)) {
+              threadMap.set(threadId, {
+                threadId,
+                type: "STAFF",
+                staffId: s.id,
+                staff: s,
+                title: `${s.name} (${s.roleTitle || "Specialist"})`,
+                participantName: s.name,
+                participantEmail: s.email || "",
+                customerName: s.name,
+                customerEmail: s.email || "",
+                senderName: s.name,
+                senderEmail: s.email || "",
+                lastMessage: "No team messages yet — click to chat with staff member",
+                lastMessageAt: s.createdAt || new Date(),
+                lastSenderType: null,
+                unreadCount: 0,
+              });
+            } else {
+              const thread = threadMap.get(threadId);
+              thread.type = "STAFF";
+              thread.staff = s;
+              thread.staffId = s.id;
+              thread.title = `${s.name} (${s.roleTitle || "Specialist"})`;
+              thread.participantName = s.name;
+              thread.participantEmail = s.email || thread.participantEmail;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load staff for chat:", err.message);
       }
     }
 
@@ -286,12 +390,14 @@ class ChatService {
     const threads = Array.from(threadMap.values());
     const inquiries = threads.filter((t) => t.type === "INQUIRY");
     const bookings = threads.filter((t) => t.type === "BOOKING");
+    const staff = threads.filter((t) => t.type === "STAFF");
 
     return {
       totalUnread,
       threads,
       inquiries,
       bookings,
+      staff,
     };
   }
 
@@ -308,7 +414,7 @@ class ChatService {
     };
 
     if (readByType === "OWNER") {
-      where.senderType = { in: ["CUSTOMER", "VISITOR"] };
+      where.senderType = { in: ["CUSTOMER", "VISITOR", "STAFF"] };
     } else {
       where.senderType = "OWNER";
     }

@@ -73,7 +73,10 @@ router.get("/api-docs", (req, res) => {
 // ─── AUTH PAGES ─────────────────────────────────────────────────────────────
 
 router.get("/login", (req, res) => {
-  if (req.session && req.session.user) return res.redirect("/dashboard");
+  if (req.session && req.session.user) {
+    if (req.session.user.role === "STAFF") return res.redirect("/staff/dashboard");
+    return res.redirect("/dashboard");
+  }
   res.render("auth/login", { title: "Sign In", fullPage: true });
 });
 
@@ -81,6 +84,7 @@ router.post("/login", async (req, res) => {
   try {
     const result = await authService.login(req.body.email, req.body.password);
     const fullUser = await setUserSession(req, result.user);
+    if (result.user.role === "STAFF") return res.redirect("/staff/dashboard");
     if (fullUser?.tenantId) return res.redirect("/dashboard");
     if (result.user.role === "BUSINESS_OWNER") return res.redirect("/setup");
     res.redirect("/");
@@ -295,6 +299,7 @@ router.get("/lookup", (req, res) => {
 // ─── DASHBOARD ──────────────────────────────────────────────────────────────
 
 router.get("/dashboard", viewAuth, requireTenant, async (req, res, next) => {
+  if (req.user?.role === "STAFF") return res.redirect("/staff/dashboard");
   try {
     const tenantId = req.user.tenantId;
     const period = req.query.period || "30d";
@@ -493,6 +498,33 @@ router.post("/dashboard/staff/:id/activate", viewAuth, requireTenant, async (req
     await staffService.activate(req.user.tenantId, req.params.id);
     req.flash("success", "Staff member reactivated!");
   } catch (err) {
+    req.flash("error", err.message);
+  }
+  res.redirect("/dashboard/staff");
+});
+
+router.post("/dashboard/staff/:id/credentials", viewAuth, requireTenant, async (req, res) => {
+  try {
+    const originUrl = `${req.protocol}://${req.get("host")}`;
+    const io = req.app.get("io");
+    const result = await staffService.provisionStaffCredentials(
+      req.user.tenantId,
+      req.params.id,
+      {
+        email: req.body.email,
+        password: req.body.password,
+        io,
+        originUrl,
+      }
+    );
+    if (req.xhr || req.headers.accept?.includes("application/json")) {
+      return res.json(result);
+    }
+    req.flash("success", `Portal credentials sent to ${result.staffName} (${result.email}) via Email and Team Chat!`);
+  } catch (err) {
+    if (req.xhr || req.headers.accept?.includes("application/json")) {
+      return res.status(err.status || 400).json({ error: err.message });
+    }
     req.flash("error", err.message);
   }
   res.redirect("/dashboard/staff");
