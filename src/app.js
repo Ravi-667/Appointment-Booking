@@ -95,8 +95,44 @@ app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: "Appointment Booking API Documentation",
 }));
 
-// ─── Health ─────────────────────────────────────────────────────────────────
-app.get("/api/v1/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+// ─── Health & Keep-Alive ────────────────────────────────────────────────────
+app.get("/api/v1/health", async (req, res) => {
+  const checkDb = req.query.db === "true" || req.query.db === "1";
+  let dbStatus = "skipped";
+  let redisStatus = "skipped";
+
+  if (checkDb) {
+    try {
+      const prisma = require("./utils/prisma.client");
+      await prisma.$queryRaw`SELECT 1`;
+      dbStatus = "connected";
+    } catch (err) {
+      dbStatus = "error: " + err.message;
+    }
+  }
+
+  if (req.query.redis === "true") {
+    try {
+      const redis = require("./utils/redis.client");
+      if (redis.status === "ready") {
+        await redis.ping();
+        redisStatus = "connected";
+      } else {
+        redisStatus = redis.status;
+      }
+    } catch (err) {
+      redisStatus = "error: " + err.message;
+    }
+  }
+
+  res.status(200).json({
+    status: "ok",
+    uptime: Math.floor(process.uptime()),
+    database: dbStatus,
+    redis: redisStatus,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // ─── API Routes ─────────────────────────────────────────────────────────────
 app.use("/api/v1/auth",         require("./routes/auth.routes"));

@@ -7,6 +7,14 @@ describe("Health Check API", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("status", "ok");
     expect(res.body).toHaveProperty("timestamp");
+    expect(res.body).toHaveProperty("uptime");
+  });
+
+  it("GET /api/v1/health?db=true should query database", async () => {
+    const res = await request(app).get("/api/v1/health?db=true");
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty("status", "ok");
+    expect(res.body).toHaveProperty("database");
   });
 
   it("GET /non-existent-route should return 404", async () => {
